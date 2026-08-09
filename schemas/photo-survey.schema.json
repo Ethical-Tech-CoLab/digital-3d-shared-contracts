@@ -140,6 +140,12 @@
               "type": "boolean",
               "default": false,
               "description": "True when perspective has been corrected so the facade is fronto-parallel, which is what makes a photo usable as a texture rather than only as reference."
+            },
+            "sky_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Fraction of the top of the frame that reads as sky. Recorded as a measurement, NOT as an interior/exterior test: measured across a real corpus, interiors scored 0.16 to 0.79 and exteriors 0.51 to 1.00, because rooms with large windows are bright and blue at the top of frame too. Any threshold that rejected the interiors also rejected good street views. Publish the number; leave the judgement to review."
             }
           },
           "additionalProperties": false
