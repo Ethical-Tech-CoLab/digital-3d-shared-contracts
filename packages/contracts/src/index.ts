@@ -566,6 +566,106 @@ export interface TourScript {
   };
 }
 
+// ------------------------------------------------------------------ basemap
+
+export type BasemapKind =
+  | 'street'
+  | 'terrain'
+  | 'satellite'
+  | 'hybrid'
+  | 'labels'
+  | 'transit'
+  | 'custom';
+
+export interface BasemapLayer {
+  layer_id: string;
+  label: string;
+  kind: BasemapKind;
+  protocol?: 'xyz' | 'tms' | 'wmts';
+  url_template: string;
+  subdomains?: string[];
+  tile_size_px?: 256 | 512;
+  min_zoom?: number;
+  max_zoom?: number;
+  requires_credential?: boolean;
+  /** Name of the env var or config field holding the credential. Never the value itself. */
+  credential_hint?: string;
+  attribution_text: string;
+  attribution_url?: string;
+  license: string;
+  terms_url?: string;
+  usage_policy?: string;
+  commercial_use?: 'permitted' | 'restricted' | 'prohibited' | 'unknown';
+  opacity?: number;
+  notes?: string;
+}
+
+export interface BasemapSet {
+  contract_version: string;
+  module_id: ModuleId;
+  default_layer: string;
+  layers: BasemapLayer[];
+  overlays?: BasemapLayer[];
+  notes?: string;
+  provenance?: Provenance;
+}
+
+// -------------------------------------------------------------- scene props
+
+export type PropKind =
+  | 'tree'
+  | 'shrub'
+  | 'bench'
+  | 'lamp'
+  | 'traffic_light'
+  | 'bollard'
+  | 'planter'
+  | 'hydrant'
+  | 'sign'
+  | 'kiosk'
+  | 'bin'
+  | 'fence'
+  | 'parked_vehicle'
+  | 'person'
+  | 'custom';
+
+export interface ScenePrototype {
+  prototype_id: string;
+  kind: PropKind;
+  label?: string;
+  url?: string;
+  format?: 'glb' | 'gltf' | 'procedural';
+  size_m?: Vec3;
+  billboard?: boolean;
+  casts_shadow?: boolean;
+  source_basis: SourceBasis[];
+  source_refs?: string[];
+  confidence: Confidence;
+  notes?: string;
+}
+
+export interface PropInstance {
+  /** prototype_id */
+  p: string;
+  /** [x, y] in scene meters */
+  xy: [number, number];
+  z?: number;
+  /** yaw, degrees */
+  r?: number;
+  /** uniform scale */
+  s?: number;
+  tile?: string;
+}
+
+export interface ScenePropSet {
+  contract_version: string;
+  module_id: ModuleId;
+  frame_id: string;
+  prototypes: ScenePrototype[];
+  instances: PropInstance[];
+  provenance?: Provenance;
+}
+
 // ------------------------------------------------------------------- helpers
 
 /** Confidence colours, shared so both viewers grade identically. */

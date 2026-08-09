@@ -16,6 +16,19 @@ export type { KernelEvents, TourProgress, CapturedPhoto } from './bus.js';
 export { LodSelector, screenSpaceError, viewportScale } from './lod.js';
 export type { SelectOptions, ViewportState } from './lod.js';
 
+export {
+  BasemapController,
+  lonLatToMercator,
+  mercatorToLonLat,
+  lonLatToTile,
+  tileToLonLat,
+  metersPerPixel,
+  zoomForResolution,
+  tileUrl,
+  tileCoverage,
+} from './basemap.js';
+export type { TileAddress, TileQuad, TileCoverageOptions } from './basemap.js';
+
 export { ModuleRegistry, defaultFetcher } from './registry.js';
 export type { Fetcher, LoadedModule, ModuleRegistryOptions } from './registry.js';
 

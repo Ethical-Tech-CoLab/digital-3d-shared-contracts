@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.digital-3d.org/v1/basemap.schema.json",
+  "title": "Basemap layer set",
+  "description": "Declares the raster basemap layers a module offers behind its map view, in the terrain / street / satellite idiom users expect from Google, Bing and Apple Maps. Deliberately provider-agnostic: a viewer implements the tile protocol, never a specific vendor's SDK. Credentials are NEVER stored in this document. See BASEMAP-LAYERS.md.",
+  "type": "object",
+  "properties": {
+    "contract_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/contract_version" },
+    "module_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+    "default_layer": {
+      "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id",
+      "description": "layer_id shown on first load. MUST name a layer in this document that requires no credential, so a fresh checkout renders something."
+    },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/layer" }
+    },
+    "overlays": {
+      "type": "array",
+      "description": "Layers drawn on top of the active basemap, e.g. street labels over satellite imagery. Same shape as a basemap layer.",
+      "items": { "$ref": "#/$defs/layer" }
+    },
+    "notes": { "type": "string" },
+    "provenance": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/provenance" }
+  },
+  "required": ["contract_version", "module_id", "default_layer", "layers"],
+  "additionalProperties": false,
+  "$defs": {
+    "layer": {
+      "type": "object",
+      "properties": {
+        "layer_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+        "label": {
+          "type": "string",
+          "description": "Human-readable name for the layer switcher, e.g. 'Satellite'."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["street", "terrain", "satellite", "hybrid", "labels", "transit", "custom"],
+          "description": "The familiar map-app category. A viewer MAY group its switcher by this."
+        },
+        "protocol": {
+          "type": "string",
+          "enum": ["xyz", "tms", "wmts"],
+          "default": "xyz",
+          "description": "Tile addressing scheme. 'xyz' is the slippy-map convention with row 0 at the north. 'tms' flips the Y axis. Stated explicitly because getting it wrong silently mirrors the map vertically."
+        },
+        "url_template": {
+          "type": "string",
+          "description": "Tile URL with {z}, {x}, {y} placeholders, and optionally {s} for a subdomain and {key} for a credential injected at runtime. MUST NOT contain a literal credential.",
+          "examples": [
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
+          ]
+        },
+        "subdomains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Values substituted for {s}, to spread requests across hostnames."
+        },
+        "tile_size_px": { "type": "integer", "enum": [256, 512], "default": 256 },
+        "min_zoom": { "type": "integer", "minimum": 0, "maximum": 24, "default": 0 },
+        "max_zoom": { "type": "integer", "minimum": 0, "maximum": 24, "default": 19 },
+        "requires_credential": {
+          "type": "boolean",
+          "default": false,
+          "description": "True when {key} must be supplied. The viewer reads it from its own runtime configuration or environment, never from this document."
+        },
+        "credential_hint": {
+          "type": "string",
+          "description": "Name of the environment variable or config field the viewer should read, e.g. 'VITE_BASEMAP_KEY_MAPTILER'. A hint, never a value."
+        },
+        "attribution_text": {
+          "type": "string",
+          "description": "Credit line the viewer MUST display whenever this layer is visible. Every major provider requires one; several require their logo as well."
+        },
+        "attribution_url": { "type": "string" },
+        "license": {
+          "type": "string",
+          "description": "SPDX identifier or short name, e.g. 'ODbL-1.0', 'public-domain', 'proprietary'."
+        },
+        "terms_url": { "type": "string" },
+        "usage_policy": {
+          "type": "string",
+          "description": "Plain-language statement of what this layer may be used for, so a reviewer does not have to chase the terms. Record volume limits and commercial restrictions here."
+        },
+        "commercial_use": {
+          "type": "string",
+          "enum": ["permitted", "restricted", "prohibited", "unknown"],
+          "default": "unknown",
+          "description": "Whether this layer may be used commercially. A viewer SHOULD warn when a non-permitted layer is selected."
+        },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 },
+        "notes": { "type": "string" }
+      },
+      "required": ["layer_id", "label", "kind", "url_template", "attribution_text", "license"],
+      "additionalProperties": false
+    }
+  }
+}

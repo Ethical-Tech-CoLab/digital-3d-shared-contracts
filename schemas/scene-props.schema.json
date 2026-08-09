@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.digital-3d.org/v1/scene-props.schema.json",
+  "title": "Scene props",
+  "description": "Repeated environmental objects — street trees, benches, lamps, bollards, planters — declared as instances of a small set of prototypes. Kept separate from the asset registry because props are high-count, low-information and usually decorative: a district has thousands of them, none carries a metadata panel, and most are grade C or D. Separating them keeps the registry meaningful and lets a viewer render them with GPU instancing. The viewer knows the prototype VOCABULARY, never the specific assets; a module supplies both the prototypes and the placements. See SCENE-DRESSING.md.",
+  "type": "object",
+  "properties": {
+    "contract_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/contract_version" },
+    "module_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+    "frame_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+    "prototypes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/prototype" }
+    },
+    "instances": {
+      "type": "array",
+      "description": "Placements. Flat and compact on purpose: a district can have tens of thousands.",
+      "items": { "$ref": "#/$defs/instance" }
+    },
+    "provenance": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/provenance" }
+  },
+  "required": ["contract_version", "module_id", "frame_id", "prototypes", "instances"],
+  "additionalProperties": false,
+  "$defs": {
+    "prototype": {
+      "type": "object",
+      "properties": {
+        "prototype_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "tree",
+            "shrub",
+            "bench",
+            "lamp",
+            "traffic_light",
+            "bollard",
+            "planter",
+            "hydrant",
+            "sign",
+            "kiosk",
+            "bin",
+            "fence",
+            "parked_vehicle",
+            "person",
+            "custom"
+          ],
+          "description": "Vocabulary the viewer understands. A viewer MAY substitute its own built-in geometry for a known kind when no payload is supplied, which is what lets a district look inhabited before any modelling work is done."
+        },
+        "label": { "type": "string" },
+        "url": {
+          "type": "string",
+          "description": "Payload for the prototype mesh. When absent, the viewer falls back to procedural geometry for the declared kind."
+        },
+        "format": {
+          "type": "string",
+          "enum": ["glb", "gltf", "procedural"],
+          "default": "procedural"
+        },
+        "size_m": {
+          "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/vec3",
+          "description": "Nominal footprint and height, used by procedural fallbacks and for culling."
+        },
+        "billboard": {
+          "type": "boolean",
+          "default": false,
+          "description": "Render as a camera-facing quad rather than geometry. Appropriate for distant vegetation."
+        },
+        "casts_shadow": { "type": "boolean", "default": false },
+        "source_basis": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/source_basis" },
+        "source_refs": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/confidence" },
+        "notes": { "type": "string" }
+      },
+      "required": ["prototype_id", "kind", "source_basis", "confidence"],
+      "additionalProperties": false
+    },
+    "instance": {
+      "type": "object",
+      "description": "One placement. Deliberately terse: `p` is the prototype, `xy` the scene position, `r` an optional yaw in degrees, `s` an optional uniform scale.",
+      "properties": {
+        "p": { "type": "string" },
+        "xy": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "z": {
+          "type": "number",
+          "description": "Ground height. Omit to let the viewer snap to its terrain, which is usually what you want."
+        },
+        "r": { "type": "number" },
+        "s": { "type": "number", "exclusiveMinimum": 0 },
+        "tile": {
+          "type": "string",
+          "description": "Owning tile ID, so props can stream with the tile rather than all at once."
+        }
+      },
+      "required": ["p", "xy"],
+      "additionalProperties": false
+    }
+  }
+}

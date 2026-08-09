@@ -20,6 +20,8 @@ them, and the runtime packages both viewers consume.
 |---|---|
 | [VIEWER-MODES.md](VIEWER-MODES.md) | How can one application be both a CAD inspector and a district walkthrough without forking? |
 | [COORDINATE-SYSTEM.md](COORDINATE-SYSTEM.md) | Where is anything, and which zero is `z = 0`? |
+| [BASEMAP-LAYERS.md](BASEMAP-LAYERS.md) | How do you put terrain/street/satellite behind a view without inheriting a vendor's architecture? |
+| [SCENE-DRESSING.md](SCENE-DRESSING.md) | How do you make a district feel like a place while the viewer stays generic? |
 | [TOUR-SCRIPT.md](TOUR-SCRIPT.md) | How do external walking instructions drive the viewer? |
 | [VIEWER-API.md](VIEWER-API.md) | What does the shared runtime expose, and what must a shell implement? |
 | [GOVERNANCE.md](GOVERNANCE.md) | Who may change what, and how does a contract change get made? |
@@ -39,6 +41,8 @@ schemas/                 JSON Schema 2020-12, the normative contracts
   tile-index             the spatial index for streamed content
   module-manifest        the single entry point one module publishes for another
   tour-script            externally authored walking instructions
+  basemap                raster map layers behind a plan view, provider-agnostic
+  scene-props            instanced environmental dressing: trees, benches, lamps
 
 frames/                  published frame instances, frozen and shared
   nyc-harbor-enu.json    the canonical scene frame for the New York Harbour modules
