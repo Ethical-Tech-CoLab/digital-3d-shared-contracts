@@ -1,0 +1,79 @@
+{
+  "contract_version": "1.0.0",
+  "module_id": "example-module",
+  "frame_id": "example-enu",
+  "campaign": {
+    "campaign_id": "fixture-campaign",
+    "title": "Schema self-test campaign",
+    "opened": "2026-08-09",
+    "guidance_url": "https://example.org/volunteer-guide"
+  },
+  "observations": [
+    {
+      "observation_id": "obs_0001",
+      "image_url": "photos/obs_0001.jpg",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "position": { "lon": -73.9896, "lat": 40.7032, "height_m": 2, "vertical_datum": "NAVD88" },
+      "position_source": "exif_gps",
+      "position_accuracy_m": 14,
+      "bearing_deg": 355,
+      "bearing_source": "exif_compass",
+      "pitch_deg": 8,
+      "hfov_deg": 68,
+      "captured_at": "2026-05-14T10:22:00Z",
+      "captured_precision": "exact",
+      "season": "spring",
+      "observes": [
+        {
+          "asset_id": "urn:d3d:example-module:thing",
+          "aspect": ["facade_material", "window_pattern", "storefront"],
+          "visibility": "clear",
+          "distance_m": 22
+        }
+      ],
+      "quality": {
+        "pixels_long_edge": 4032,
+        "sharpness": "sharp",
+        "lighting": "overcast",
+        "obstruction": "none",
+        "rectified": false
+      },
+      "license": "CC-BY-4.0",
+      "attribution_text": "Photo: volunteer handle, CC BY 4.0",
+      "usage": "derive_appearance",
+      "contains_people": false,
+      "privacy_reviewed": true,
+      "contributor": { "handle": "fixture-volunteer", "role": "volunteer" },
+      "review": {
+        "status": "accepted",
+        "reviewer": "fixture-reviewer",
+        "reviewed_at": "2026-05-16T09:00:00Z",
+        "grants_confidence": "B",
+        "notes": "Sharp, well located, recent, subject unobstructed. May promote facade appearance from inferred to observed."
+      }
+    },
+    {
+      "observation_id": "obs_0002",
+      "image_url": "photos/obs_0002.jpg",
+      "position": { "lon": -73.9899, "lat": 40.7035 },
+      "position_source": "geocoded_address",
+      "position_accuracy_m": 40,
+      "bearing_source": "unknown",
+      "captured_at": "2011-01-01T00:00:00Z",
+      "captured_precision": "year",
+      "observes": [
+        { "asset_id": "urn:d3d:example-module:thing", "aspect": ["roofline"], "visibility": "partial" }
+      ],
+      "quality": { "pixels_long_edge": 900, "sharpness": "soft", "obstruction": "scaffolding" },
+      "license": "CC-BY-SA-4.0",
+      "attribution_text": "Photo: archive collection, CC BY-SA 4.0",
+      "source_collection": "Wikimedia Commons",
+      "usage": "reference_only",
+      "review": {
+        "status": "accepted",
+        "grants_confidence": "C",
+        "notes": "Dated to the year only, scaffolding over the subject, no bearing. Useful as historic reference; must not be presented as current condition."
+      }
+    }
+  ]
+}

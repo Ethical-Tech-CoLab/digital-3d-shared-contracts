@@ -40,3 +40,6 @@ export type { SampledPoint } from './tour/route.js';
 
 export { TourPlayer } from './tour/player.js';
 export type { TourCameraState, TourPlayerOptions, TourPhaseKind } from './tour/player.js';
+
+export { MapCamera } from './mapcamera.js';
+export type { MapView, MapCameraLimits, Easing } from './mapcamera.js';

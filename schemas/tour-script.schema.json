@@ -348,7 +348,8 @@
             "exit_inspect",
             "set_time_of_day",
             "wait_for_user",
-            "set_speed"
+            "set_speed",
+            "map_focus"
           ]
         },
         "at_s": {
@@ -403,6 +404,11 @@
         },
         "time_of_day": { "type": "string", "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$" },
         "speed_multiplier": { "type": "number", "exclusiveMinimum": 0 },
+        "map_span_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "For map_focus and for set_mode targeting 'map': ground distance the plan view should span, in meters. Lets a tour open zoomed out over a whole district and then fly in to a stop."
+        },
         "heading_deg": { "type": "number", "description": "Absolute heading for pan." },
         "pitch_deg": { "type": "number", "minimum": -90, "maximum": 90 },
         "label": { "type": "string" }

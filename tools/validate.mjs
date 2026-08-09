@@ -46,6 +46,9 @@ function buildAjv(schemas) {
 function detectSchema(doc) {
   if (doc && typeof doc === 'object') {
     if ('tour_id' in doc && 'stops' in doc) return 'tour-script';
+    if ('observations' in doc) return 'photo-survey';
+    if ('prototypes' in doc && 'instances' in doc) return 'scene-props';
+    if ('layers' in doc && 'default_layer' in doc) return 'basemap';
     if ('authoritative_for' in doc && 'modes' in doc) return 'module-manifest';
     if ('scheme' in doc && 'tiles' in doc) return 'tile-index';
     if ('assets' in doc && 'ladder_id' in doc) return 'asset-registry';

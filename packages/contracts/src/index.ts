@@ -420,7 +420,8 @@ export type ActionType =
   | 'exit_inspect'
   | 'set_time_of_day'
   | 'wait_for_user'
-  | 'set_speed';
+  | 'set_speed'
+  | 'map_focus';
 
 export interface TourAction {
   type: ActionType;
@@ -437,6 +438,7 @@ export interface TourAction {
   module_id?: ModuleId;
   time_of_day?: string;
   speed_multiplier?: number;
+  map_span_m?: number;
   heading_deg?: number;
   pitch_deg?: number;
   label?: string;

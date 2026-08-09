@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.digital-3d.org/v1/photo-survey.schema.json",
+  "title": "Photo survey",
+  "description": "Ground-level photographic observations used to inform and promote a module's appearance data. Deliberately an EVIDENCE contract, not an image gallery: each record ties a photograph to a place, a direction, a moment and a licence, and states which assets it observes. That is what lets a photo raise a facade from an inferred grade C to an observed grade B, and what stops an unlicensed or undated image being used to do so. See PHOTO-SURVEY.md.",
+  "type": "object",
+  "properties": {
+    "contract_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/contract_version" },
+    "module_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+    "frame_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+    "campaign": {
+      "type": "object",
+      "description": "The collection effort these observations belong to.",
+      "properties": {
+        "campaign_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+        "title": { "type": "string" },
+        "opened": { "type": "string", "format": "date" },
+        "closed": { "type": "string", "format": "date" },
+        "contact": { "type": "string" },
+        "guidance_url": { "type": "string" }
+      },
+      "required": ["campaign_id", "title"],
+      "additionalProperties": false
+    },
+    "observations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/observation" }
+    },
+    "provenance": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/provenance" }
+  },
+  "required": ["contract_version", "module_id", "frame_id", "observations"],
+  "additionalProperties": false,
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "properties": {
+        "observation_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+        "image_url": { "type": "string" },
+        "thumbnail_url": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+
+        "position": {
+          "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/position",
+          "description": "Where the camera stood. Geodetic from EXIF GPS, or scene-space once resolved, or an address geocode."
+        },
+        "position_source": {
+          "type": "string",
+          "enum": ["exif_gps", "device_gps", "geocoded_address", "manual_placement", "photogrammetric_solve", "unknown"],
+          "description": "How the position was obtained. Drives position_accuracy_m and the confidence an observation can grant."
+        },
+        "position_accuracy_m": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Radius of uncertainty. Consumer-phone GPS in a street canyon is commonly 10-30 m, which is worse than the width of the street; that is why bearing and subject reference matter more than position alone."
+        },
+        "bearing_deg": {
+          "type": "number",
+          "description": "Compass direction the camera faced, degrees clockwise from true north. Without this a photo says what a place looks like but not from where, and cannot be used to observe a specific facade."
+        },
+        "bearing_source": {
+          "type": "string",
+          "enum": ["exif_compass", "device_compass", "inferred_from_subject", "manual", "unknown"]
+        },
+        "pitch_deg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "hfov_deg": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 180,
+          "description": "Horizontal field of view, from EXIF focal length and sensor size where available."
+        },
+
+        "captured_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the photograph was taken, NOT when it was uploaded. Required for anything claiming to describe current conditions."
+        },
+        "captured_precision": {
+          "type": "string",
+          "enum": ["exact", "day", "month", "year", "decade", "unknown"],
+          "description": "How precisely captured_at is known. An archival photo dated only to a decade is still useful, but must not be presented as current."
+        },
+        "season": { "type": "string", "enum": ["winter", "spring", "summer", "autumn"] },
+
+        "observes": {
+          "type": "array",
+          "description": "Assets this photograph shows well enough to inform. An observation with no subjects is context, not evidence.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "asset_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/asset_urn" },
+              "aspect": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "facade_material",
+                    "facade_colour",
+                    "window_pattern",
+                    "storefront",
+                    "awning",
+                    "signage",
+                    "roofline",
+                    "entrance",
+                    "paving_material",
+                    "kerb",
+                    "street_furniture",
+                    "tree_size",
+                    "tree_species",
+                    "condition",
+                    "other"
+                  ],
+                  "description": "What the photograph is good evidence FOR. A wide streetscape may evidence paving and tree size while being useless for one building's window pattern."
+                }
+              },
+              "visibility": {
+                "type": "string",
+                "enum": ["clear", "partial", "obstructed"],
+                "default": "clear"
+              },
+              "distance_m": { "type": "number", "minimum": 0 }
+            },
+            "required": ["asset_id", "aspect"],
+            "additionalProperties": false
+          }
+        },
+
+        "quality": {
+          "type": "object",
+          "description": "Fitness for purpose. Recorded rather than inferred at render time so a reviewer can filter before anything is derived.",
+          "properties": {
+            "pixels_long_edge": { "type": "integer", "minimum": 1 },
+            "sharpness": { "type": "string", "enum": ["sharp", "acceptable", "soft"] },
+            "lighting": { "type": "string", "enum": ["even", "harsh_shadow", "backlit", "night", "overcast"] },
+            "obstruction": {
+              "type": "string",
+              "enum": ["none", "vehicles", "foliage", "scaffolding", "people", "heavy"],
+              "description": "Scaffolding matters especially: it hides the very facade the photo was taken for."
+            },
+            "rectified": {
+              "type": "boolean",
+              "default": false,
+              "description": "True when perspective has been corrected so the facade is fronto-parallel, which is what makes a photo usable as a texture rather than only as reference."
+            }
+          },
+          "additionalProperties": false
+        },
+
+        "license": {
+          "type": "string",
+          "description": "SPDX identifier or short name. REQUIRED. An image whose licence is unknown cannot be used, however good it is."
+        },
+        "license_url": { "type": "string" },
+        "attribution_text": {
+          "type": "string",
+          "description": "Credit line to display wherever anything derived from this image is shown."
+        },
+        "rights_holder": { "type": "string" },
+        "usage": {
+          "type": "string",
+          "enum": ["reference_only", "derive_appearance", "redistribute"],
+          "description": "reference_only: a human may look at it, nothing may be derived and it is never published. derive_appearance: colours, materials and dimensions may be derived, the image itself is not redistributed. redistribute: the image may be served to end users."
+        },
+        "contains_people": {
+          "type": "boolean",
+          "description": "Flag for review. Faces and readable plates should be blurred before any image is published."
+        },
+        "privacy_reviewed": { "type": "boolean", "default": false },
+
+        "contributor": {
+          "type": "object",
+          "description": "Who supplied it. Pseudonymous by default: a campaign should never require a contributor's real identity.",
+          "properties": {
+            "handle": { "type": "string" },
+            "role": { "type": "string", "enum": ["volunteer", "staff", "archive", "third_party"] },
+            "contact": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "source_collection": {
+          "type": "string",
+          "description": "Where a found image came from, e.g. 'Mapillary', 'Wikimedia Commons', 'NYC Municipal Archives'."
+        },
+
+        "review": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["submitted", "auto_screened", "human_reviewed", "accepted", "rejected", "superseded"]
+            },
+            "reviewer": { "type": "string" },
+            "reviewed_at": { "type": "string", "format": "date-time" },
+            "grants_confidence": {
+              "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/confidence",
+              "description": "Highest confidence an asset aspect derived from this observation may claim. A dated archival photo may grant C; a sharp, well-located, recent, rectified photo may grant B. Photographs alone never grant A."
+            },
+            "notes": { "type": "string" }
+          },
+          "required": ["status"],
+          "additionalProperties": false
+        },
+        "supersedes": {
+          "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id",
+          "description": "observation_id this replaces, e.g. a current photo replacing a dated one of the same subject."
+        },
+        "notes": { "type": "string" }
+      },
+      "required": ["observation_id", "position", "license", "usage", "review"],
+      "additionalProperties": false
+    }
+  }
+}

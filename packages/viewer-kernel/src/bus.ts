@@ -44,6 +44,13 @@ export interface KernelEvents {
   'handoff:enter': { moduleId: ModuleId; entryId: string; focusAsset?: AssetUrn };
   'handoff:exit': { moduleId: ModuleId };
   'camera:goto': { position: Vec3; target?: Vec3; durationS: number; easing: string };
+  /** Map-mode camera intent, typically from a tour: fly to a centre and ground span. */
+  'map:goto': {
+    center: [number, number];
+    spanM?: number;
+    durationS: number;
+    easing: string;
+  };
   'environment:changed': { timeOfDay?: string; weather?: string };
   'tour:progress': TourProgress;
   'tour:narrate': { text: string; durationS: number; stopId: string | null };

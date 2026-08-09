@@ -22,6 +22,7 @@ them, and the runtime packages both viewers consume.
 | [COORDINATE-SYSTEM.md](COORDINATE-SYSTEM.md) | Where is anything, and which zero is `z = 0`? |
 | [BASEMAP-LAYERS.md](BASEMAP-LAYERS.md) | How do you put terrain/street/satellite behind a view without inheriting a vendor's architecture? |
 | [SCENE-DRESSING.md](SCENE-DRESSING.md) | How do you make a district feel like a place while the viewer stays generic? |
+| [PHOTO-SURVEY.md](PHOTO-SURVEY.md) | How do you crowdsource photographs that actually improve the model? |
 | [TOUR-SCRIPT.md](TOUR-SCRIPT.md) | How do external walking instructions drive the viewer? |
 | [VIEWER-API.md](VIEWER-API.md) | What does the shared runtime expose, and what must a shell implement? |
 | [GOVERNANCE.md](GOVERNANCE.md) | Who may change what, and how does a contract change get made? |
@@ -43,6 +44,7 @@ schemas/                 JSON Schema 2020-12, the normative contracts
   tour-script            externally authored walking instructions
   basemap                raster map layers behind a plan view, provider-agnostic
   scene-props            instanced environmental dressing: trees, benches, lamps
+  photo-survey           crowdsourced photographic observations as evidence
 
 frames/                  published frame instances, frozen and shared
   nyc-harbor-enu.json    the canonical scene frame for the New York Harbour modules

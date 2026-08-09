@@ -534,7 +534,16 @@ export class TourPlayer {
         break;
       }
       case 'set_mode': {
-        if (action.mode) this.switchMode(action.mode as ViewerMode);
+        if (action.mode) {
+          this.switchMode(action.mode as ViewerMode);
+          // A tour switching to map mode usually wants a specific framing too, otherwise the map
+          // opens wherever the user last left it.
+          if (action.mode === 'map') this.emitMapFocus(action, phase, compiled.durationS);
+        }
+        break;
+      }
+      case 'map_focus': {
+        this.emitMapFocus(action, phase, compiled.durationS);
         break;
       }
       case 'enter_inspect': {
@@ -571,6 +580,33 @@ export class TourPlayer {
       default:
         break;
     }
+  }
+
+  /**
+   * Ask the host's map view to frame something.
+   *
+   * Falls back through target, then the current stop, then the party's position, so a bare
+   * `map_focus` with no target still does something sensible.
+   */
+  private emitMapFocus(action: TourAction, phase: CompiledPhase, durationS: number): void {
+    let center: [number, number] | null = null;
+
+    if (action.target) {
+      const resolved = this.resolve(action.target);
+      if (resolved) center = [resolved[0], resolved[1]];
+    }
+    if (!center) {
+      const stopPosition = this.stopPositions[phase.stopIndex];
+      if (stopPosition) center = [stopPosition[0], stopPosition[1]];
+    }
+    if (!center) return;
+
+    this.bus.emit('map:goto', {
+      center,
+      spanM: action.map_span_m,
+      durationS: durationS || 1.6,
+      easing: 'ease_in_out',
+    });
   }
 
   private switchMode(mode: ViewerMode): void {
