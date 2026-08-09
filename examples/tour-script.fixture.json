@@ -1,0 +1,104 @@
+{
+  "contract_version": "1.0.0",
+  "tour_id": "fixture-tour",
+  "title": "Schema self-test tour",
+  "description": "Minimal document exercising every construct in tour-script.schema.json: a party, geodetic and asset-relative positions, a leg with maneuver steps, dwell actions, a photo, a narration, and a cross-module inspect handoff.",
+  "locale": "en-US",
+  "requires_modules": ["example-module"],
+  "party": {
+    "size": 2,
+    "label": "Fixture party",
+    "members": [
+      { "member_id": "adult_1", "role": "adult", "eye_height_m": 1.65 },
+      { "member_id": "child_1", "role": "child", "eye_height_m": 1.15 }
+    ],
+    "point_of_view": "adult_1",
+    "pace_mps": 1.1,
+    "accessibility": { "avoid_stairs": true }
+  },
+  "defaults": {
+    "dwell_s": 15,
+    "eye_height_m": 1.65,
+    "camera": { "rig": "first_person", "look": "forward", "bob": true },
+    "transition": { "kind": "walk", "easing": "ease_in_out" },
+    "viewer_mode": "walk",
+    "speed_multiplier": 2,
+    "time_of_day": "16:30",
+    "weather": "clear"
+  },
+  "route_source": {
+    "provider": "manual",
+    "profile": "walking",
+    "attribution_text": "Fixture route, hand-authored."
+  },
+  "stops": [
+    {
+      "stop_id": "start",
+      "name": "Start",
+      "position": { "lon": -73.9951, "lat": 40.7033, "height_m": 2, "vertical_datum": "NAVD88" },
+      "heading_deg": 75,
+      "dwell_s": 10,
+      "on_arrive": [
+        { "type": "narrate", "text": "Welcome. This is where the fixture tour begins.", "duration_s": 4 },
+        { "type": "look_at", "target": { "asset": "urn:d3d:example-module:thing" }, "duration_s": 5 },
+        { "type": "capture_photo", "framing": "wide", "capture": { "width": 1600, "height": 1000 } }
+      ]
+    },
+    {
+      "stop_id": "finish",
+      "name": "Finish",
+      "position": { "lon": -73.9896, "lat": 40.7032 },
+      "dwell_s": 12,
+      "on_arrive": [
+        { "type": "set_time_of_day", "time_of_day": "18:45" },
+        {
+          "type": "enter_inspect",
+          "module_id": "example-module",
+          "entry_id": "main",
+          "target": { "asset": "urn:d3d:example-module:thing" },
+          "duration_s": 8
+        },
+        { "type": "exit_inspect", "module_id": "example-module" },
+        { "type": "wait_for_user", "label": "Look around, then continue", "blocking": true }
+      ]
+    }
+  ],
+  "legs": [
+    {
+      "leg_id": "leg_1",
+      "from_stop": "start",
+      "to_stop": "finish",
+      "distance_m": 470,
+      "duration_s": 427,
+      "transition": { "kind": "walk" },
+      "steps": [
+        {
+          "step_id": "s1",
+          "maneuver": "depart",
+          "instruction": "Head east on Water St",
+          "street_name": "Water Street",
+          "distance_m": 300,
+          "duration_s": 273,
+          "path": { "geodetic": [[-73.9951, 40.7033], [-73.9920, 40.7032]] },
+          "actions": [{ "type": "narrate", "text": "On your left, the fixture warehouse.", "blocking": false }]
+        },
+        {
+          "step_id": "s2",
+          "maneuver": "turn-right",
+          "instruction": "Turn right onto Main St",
+          "street_name": "Main Street",
+          "distance_m": 170,
+          "duration_s": 154,
+          "path": { "encoded_polyline": "_p~iF~ps|U_ulLnnqC" }
+        },
+        { "step_id": "s3", "maneuver": "arrive", "instruction": "Arrive at Finish", "distance_m": 0 }
+      ]
+    }
+  ],
+  "totals": {
+    "distance_m": 470,
+    "walking_duration_s": 427,
+    "dwell_duration_s": 22,
+    "estimated_duration_s": 449
+  }
+}

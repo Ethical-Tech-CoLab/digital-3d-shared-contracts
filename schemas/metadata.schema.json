@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.digital-3d.org/v1/metadata.schema.json",
+  "title": "Asset metadata",
+  "description": "The metadata every selectable object carries, in every module, in every viewer mode. This is what the shared metadata panel renders. Module-specific fields live under 'extensions' keyed by module_id so neither team can break the other's panel.",
+  "type": "object",
+  "properties": {
+    "asset_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/asset_urn" },
+    "module_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+    "local_id": {
+      "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id",
+      "description": "The module's own identifier, e.g. a part_id or a BIN. Must equal the suffix of asset_id."
+    },
+    "display_name": { "type": "string" },
+    "category": {
+      "type": "string",
+      "enum": [
+        "building",
+        "structure",
+        "bridge_component",
+        "terrain",
+        "street",
+        "sidewalk",
+        "waterfront",
+        "water",
+        "park",
+        "streetscape",
+        "landmark",
+        "reference",
+        "annotation"
+      ],
+      "description": "Coarse class shared by both modules. Fine-grained taxonomy stays module-local under 'taxonomy'."
+    },
+    "taxonomy": {
+      "type": "object",
+      "description": "Module-local classification. The bridge uses system/subsystem; the district uses land use and building class.",
+      "properties": {
+        "system": { "type": "string" },
+        "subsystem": { "type": ["string", "null"] },
+        "path": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Hierarchical path for tree widgets, e.g. ['towers','manhattan'] or ['buildings','warehouse']."
+        }
+      },
+      "additionalProperties": false
+    },
+    "source_basis": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/source_basis" },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Source register IDs this asset's geometry consumed."
+    },
+    "confidence": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/confidence" },
+    "basis_confidence": {
+      "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/confidence",
+      "description": "Grade of this asset's own basis, before the weakest-link rule is applied against its control references."
+    },
+    "control_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Control value IDs consumed, e.g. 'CTL-005' or 'DCTL-003'. Makes the weakest-link rule auditable."
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Unresolved question IDs. Every grade D asset MUST name at least one."
+    },
+    "review_status": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/review_status" },
+    "last_modified_by": {
+      "type": "string",
+      "description": "Script or agent identifier plus version."
+    },
+    "units": {
+      "type": "string",
+      "const": "meters",
+      "description": "All shared metadata lengths are prototype meters. Display scales such as HO are a viewer concern, not a data concern."
+    },
+    "bbox": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/bbox_scene" },
+    "anchor": {
+      "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/scene_position",
+      "description": "Representative point used by tours for 'look at this' and by the map view for pin placement."
+    },
+    "attributes": {
+      "type": "object",
+      "description": "Free-form displayable facts, rendered as a key/value table. Values must be primitives so any viewer can render them without module-specific code.",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean", "null"]
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Module-private payloads, keyed by module_id. A viewer MUST ignore extensions it does not recognise.",
+      "propertyNames": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+      "additionalProperties": { "type": "object" }
+    },
+    "notes": { "type": "string" }
+  },
+  "required": [
+    "asset_id",
+    "module_id",
+    "local_id",
+    "category",
+    "source_basis",
+    "confidence",
+    "review_status",
+    "last_modified_by"
+  ],
+  "additionalProperties": false
+}

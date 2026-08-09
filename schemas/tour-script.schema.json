@@ -1,0 +1,414 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.digital-3d.org/v1/tour-script.schema.json",
+  "title": "Tour script",
+  "description": "An externally authored walking instruction set that drives a viewer. Deliberately shaped like a routing-provider directions response (Google / Bing / Apple / OSRM: a route made of legs, each leg made of maneuver steps) so that a real directions payload can be mechanically transformed into a tour with a thin adapter. The experience layer, stops with dwell times, look-at targets, photo moments and narration, is added as a superset rather than a replacement, so the same document is both a route and a storyboard. The viewer is a player: it does not author routes, it executes them.",
+  "type": "object",
+  "properties": {
+    "contract_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/contract_version" },
+    "tour_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "locale": { "type": "string", "default": "en-US" },
+    "frame_id": {
+      "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id",
+      "description": "Scene frame for any scene-space position in this document. Omit when every position is geodetic or asset-relative, which is the portable case."
+    },
+    "requires_modules": {
+      "type": "array",
+      "items": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+      "description": "Modules that must be loaded for this tour to run. The player MUST refuse to start, with a clear message, rather than silently skip stops it cannot reach."
+    },
+    "party": { "$ref": "#/$defs/party" },
+    "defaults": { "$ref": "#/$defs/defaults" },
+    "route_source": {
+      "type": "object",
+      "description": "Where the geometry of the route came from. Recorded because most providers' directions data carries redistribution terms.",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["manual", "google_maps", "bing_maps", "apple_maps", "osrm", "valhalla", "graphhopper", "internal_router"]
+        },
+        "profile": { "type": "string", "enum": ["walking", "wheelchair", "cycling"], "default": "walking" },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "attribution_text": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["provider"],
+      "additionalProperties": false
+    },
+    "stops": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered points of interest. stops[0] is the origin. Legs connect consecutive stops.",
+      "items": { "$ref": "#/$defs/stop" }
+    },
+    "legs": {
+      "type": "array",
+      "description": "Travel between consecutive stops. legs[i] goes from stops[i] to stops[i+1]. MUST have exactly one fewer entry than stops, or be omitted entirely to let the viewer's own router connect the stops.",
+      "items": { "$ref": "#/$defs/leg" }
+    },
+    "totals": {
+      "type": "object",
+      "properties": {
+        "distance_m": { "type": "number", "minimum": 0 },
+        "walking_duration_s": { "type": "number", "minimum": 0 },
+        "dwell_duration_s": { "type": "number", "minimum": 0 },
+        "estimated_duration_s": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["contract_version", "tour_id", "title", "stops"],
+  "additionalProperties": false,
+  "$defs": {
+    "party": {
+      "type": "object",
+      "description": "Who is taking the tour. Drives eye height, pace and rest behaviour. 'A family of four' is expressed here, not hard-coded in the viewer.",
+      "properties": {
+        "size": { "type": "integer", "minimum": 1 },
+        "label": { "type": "string", "examples": ["Family of 4"] },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "member_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+              "name": { "type": "string" },
+              "role": { "type": "string", "enum": ["adult", "child", "guide", "companion"] },
+              "eye_height_m": { "type": "number", "exclusiveMinimum": 0 },
+              "pace_mps": { "type": "number", "exclusiveMinimum": 0 }
+            },
+            "required": ["member_id", "role"],
+            "additionalProperties": false
+          }
+        },
+        "point_of_view": {
+          "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id",
+          "description": "member_id whose eyes the camera uses. Defaults to the first adult."
+        },
+        "pace_mps": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 1.3,
+          "description": "Group walking pace. A party containing a child SHOULD be slower; the author sets this, the player does not guess."
+        },
+        "accessibility": {
+          "type": "object",
+          "properties": {
+            "avoid_stairs": { "type": "boolean", "default": false },
+            "avoid_steep_grades": { "type": "boolean", "default": false },
+            "max_grade_percent": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["size"],
+      "additionalProperties": false
+    },
+    "defaults": {
+      "type": "object",
+      "description": "Fallbacks applied to any stop or step that does not override them.",
+      "properties": {
+        "dwell_s": { "type": "number", "minimum": 0, "default": 20 },
+        "eye_height_m": { "type": "number", "exclusiveMinimum": 0, "default": 1.65 },
+        "camera": { "$ref": "#/$defs/camera_behaviour" },
+        "transition": { "$ref": "#/$defs/transition" },
+        "viewer_mode": { "type": "string", "enum": ["walk", "inspect", "map"], "default": "walk" },
+        "speed_multiplier": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 1,
+          "description": "Global playback rate. A demo typically runs at 2-4x so a 40 minute walk fits a 10 minute presentation."
+        },
+        "time_of_day": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "description": "Local clock time used to drive sun position."
+        },
+        "weather": { "type": "string", "enum": ["clear", "overcast", "rain", "snow", "fog"] }
+      },
+      "additionalProperties": false
+    },
+    "camera_behaviour": {
+      "type": "object",
+      "properties": {
+        "rig": {
+          "type": "string",
+          "enum": ["first_person", "over_shoulder", "drone", "fixed"],
+          "default": "first_person"
+        },
+        "look": {
+          "type": "string",
+          "enum": ["forward", "at_target", "free", "hold"],
+          "default": "forward",
+          "description": "'forward' faces travel direction. 'at_target' tracks the active look_at target. 'free' returns control to the user. 'hold' keeps the current orientation."
+        },
+        "height_offset_m": { "type": "number", "default": 0 },
+        "distance_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Rig distance for over_shoulder and drone rigs."
+        },
+        "fov_deg": { "type": "number", "exclusiveMinimum": 0, "maximum": 179 },
+        "bob": {
+          "type": "boolean",
+          "default": true,
+          "description": "Walking head bob. Off for cinematic capture."
+        }
+      },
+      "additionalProperties": false
+    },
+    "transition": {
+      "type": "object",
+      "description": "How the camera gets from one pose to the next.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["walk", "ease", "cut", "fade", "teleport"],
+          "default": "walk",
+          "description": "'walk' traverses the route at party pace and is the only kind that respects the street network. The others are cinematic shortcuts and MUST be used sparingly in a demo that claims to be a walkthrough."
+        },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "easing": {
+          "type": "string",
+          "enum": ["linear", "ease_in", "ease_out", "ease_in_out"],
+          "default": "ease_in_out"
+        }
+      },
+      "additionalProperties": false
+    },
+    "stop": {
+      "type": "object",
+      "properties": {
+        "stop_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+        "name": { "type": "string" },
+        "position": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/position" },
+        "heading_deg": {
+          "type": "number",
+          "description": "Compass heading the party faces on arrival, degrees clockwise from north. Ignored when an on_arrive look_at action is present."
+        },
+        "dwell_s": {
+          "type": "number",
+          "minimum": 0,
+          "description": "How long the party lingers here. Overrides defaults.dwell_s. The player MUST hold for this long, in playback time, before advancing."
+        },
+        "viewer_mode": { "type": "string", "enum": ["walk", "inspect", "map"] },
+        "camera": { "$ref": "#/$defs/camera_behaviour" },
+        "on_arrive": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/action" },
+          "description": "Actions played in order once the party arrives. Their combined duration counts against dwell_s; if it exceeds dwell_s the player extends the dwell rather than truncating the actions."
+        },
+        "on_depart": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/action" }
+        },
+        "optional": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true the player MAY skip this stop under a time budget."
+        },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" }
+      },
+      "required": ["stop_id", "name", "position"],
+      "additionalProperties": false
+    },
+    "leg": {
+      "type": "object",
+      "properties": {
+        "leg_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+        "from_stop": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+        "to_stop": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+        "distance_m": { "type": "number", "minimum": 0 },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "transition": { "$ref": "#/$defs/transition" },
+        "path": {
+          "$ref": "#/$defs/path",
+          "description": "Full leg geometry. When present the player follows it exactly. When absent the player concatenates the step paths, and failing that routes on its own walk network."
+        },
+        "steps": {
+          "type": "array",
+          "description": "Turn-by-turn maneuvers, one to one with a directions API's steps.",
+          "items": { "$ref": "#/$defs/step" }
+        }
+      },
+      "required": ["from_stop", "to_stop"],
+      "additionalProperties": false
+    },
+    "step": {
+      "type": "object",
+      "description": "One maneuver. Mirrors a routing provider's step so an adapter is a field rename, not a rewrite.",
+      "properties": {
+        "step_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+        "maneuver": {
+          "type": "string",
+          "enum": [
+            "depart",
+            "continue",
+            "turn-left",
+            "turn-right",
+            "turn-slight-left",
+            "turn-slight-right",
+            "turn-sharp-left",
+            "turn-sharp-right",
+            "uturn",
+            "cross-street",
+            "enter-park",
+            "board-elevator",
+            "stairs-up",
+            "stairs-down",
+            "ramp-up",
+            "ramp-down",
+            "arrive"
+          ]
+        },
+        "instruction": {
+          "type": "string",
+          "description": "Human-readable instruction, e.g. 'Head northeast on Water St toward Main St'. Displayed verbatim by the player."
+        },
+        "street_name": { "type": "string" },
+        "distance_m": { "type": "number", "minimum": 0 },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "path": { "$ref": "#/$defs/path" },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/action" },
+          "description": "Actions fired while walking this step, e.g. a narration that plays as the party crosses under the bridge. Non-blocking unless the action declares blocking=true."
+        }
+      },
+      "required": ["maneuver"],
+      "additionalProperties": false
+    },
+    "path": {
+      "type": "object",
+      "description": "Route geometry. Exactly one representation must be supplied.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "geodetic": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/lonlat" }
+            }
+          },
+          "required": ["geodetic"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "scene": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 2,
+                "maxItems": 3,
+                "description": "[x, y] or [x, y, z] in the tour's frame_id. Z is optional; the player snaps to ground when omitted."
+              }
+            }
+          },
+          "required": ["scene"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "encoded_polyline": {
+              "type": "string",
+              "description": "Google encoded polyline, precision 5."
+            }
+          },
+          "required": ["encoded_polyline"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "action": {
+      "type": "object",
+      "description": "A single scripted beat. The verb set is intentionally small and closed so that any conforming player supports all of it.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "look_at",
+            "pan",
+            "dwell",
+            "narrate",
+            "capture_photo",
+            "group_photo",
+            "highlight",
+            "show_metadata",
+            "set_mode",
+            "enter_inspect",
+            "exit_inspect",
+            "set_time_of_day",
+            "wait_for_user",
+            "set_speed"
+          ]
+        },
+        "at_s": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Offset from the start of the containing stop dwell or step, in playback seconds. Defaults to sequential scheduling."
+        },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "blocking": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true the player does not advance until the action completes."
+        },
+        "target": {
+          "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/position",
+          "description": "Subject of look_at, highlight, show_metadata, capture_photo framing. May name a foreign module's asset by URN, which is how a district tour points the camera at a bridge tower it does not own."
+        },
+        "text": {
+          "type": "string",
+          "description": "Narration or caption copy for narrate and show_metadata."
+        },
+        "audio_url": { "type": "string" },
+        "framing": {
+          "type": "string",
+          "enum": ["wide", "normal", "tele", "portrait", "selfie"],
+          "default": "normal",
+          "description": "Photo framing preset for capture_photo and group_photo."
+        },
+        "capture": {
+          "type": "object",
+          "description": "Output settings for capture_photo and group_photo.",
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 },
+            "filename": { "type": "string" },
+            "include_party": { "type": "boolean", "default": false }
+          },
+          "additionalProperties": false
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["walk", "inspect", "map"],
+          "description": "Target mode for set_mode."
+        },
+        "entry_id": {
+          "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id",
+          "description": "For enter_inspect: the handoff entry point declared in the owning module's manifest."
+        },
+        "module_id": {
+          "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id",
+          "description": "For enter_inspect: which module to hand off to."
+        },
+        "time_of_day": { "type": "string", "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$" },
+        "speed_multiplier": { "type": "number", "exclusiveMinimum": 0 },
+        "heading_deg": { "type": "number", "description": "Absolute heading for pan." },
+        "pitch_deg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "label": { "type": "string" }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    }
+  }
+}

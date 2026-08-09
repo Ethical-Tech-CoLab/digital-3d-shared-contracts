@@ -1,0 +1,46 @@
+{
+  "contract_version": "1.0.0",
+  "module_id": "example-module",
+  "frame_id": "example-enu",
+  "ladder_id": "example-ladder",
+  "base_url": "./assets/",
+  "assets": [
+    {
+      "asset_id": "urn:d3d:example-module:thing",
+      "kind": "single",
+      "bbox": { "frame": "example-enu", "min": [-10, -10, 0], "max": [10, 10, 24] },
+      "tags": ["landmark", "photo_spot"],
+      "metadata": {
+        "asset_id": "urn:d3d:example-module:thing",
+        "module_id": "example-module",
+        "local_id": "thing",
+        "display_name": "The Thing",
+        "category": "building",
+        "taxonomy": { "system": "buildings", "path": ["buildings", "fixture"] },
+        "source_basis": ["official_dataset"],
+        "source_refs": ["SRC-000"],
+        "confidence": "A",
+        "basis_confidence": "A",
+        "review_status": "unreviewed",
+        "last_modified_by": "validate.mjs fixture",
+        "units": "meters",
+        "attributes": { "height_m": 24, "year_built": 1910 }
+      },
+      "variants": [
+        { "level": 0, "url": "thing.lod0.glb", "format": "glb", "triangle_count": 120000, "max_geometric_error_m": 0.01 },
+        { "level": 2, "url": "thing.lod2.glb", "format": "glb", "triangle_count": 240, "max_geometric_error_m": 8 }
+      ]
+    },
+    {
+      "asset_id": "urn:d3d:example-module:proxy",
+      "kind": "proxy",
+      "represents": "urn:d3d:other-module:big_structure",
+      "variants": [{ "level": 2, "url": "proxy.glb", "format": "glb", "max_geometric_error_m": 8 }]
+    },
+    {
+      "asset_id": "urn:d3d:example-module:district",
+      "kind": "tileset",
+      "tile_index_url": "../tile-index.json"
+    }
+  ]
+}

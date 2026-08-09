@@ -1,0 +1,21 @@
+{
+  "name": "digital-3d-shared-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared contracts and viewer tooling for the Digital 3D module stack. Schemas, documentation and reusable runtime packages only: no module-specific data lives here.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "validate": "node tools/validate.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "npm run validate && npm run typecheck && node --test tools/"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "typescript": "^5.6.3"
+  }
+}

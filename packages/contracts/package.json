@@ -1,0 +1,17 @@
+{
+  "name": "@d3d/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TypeScript types and a runtime validator for the Digital 3D shared contracts. Consumed by every module viewer so a malformed manifest fails loudly at load rather than quietly at render.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["src"],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

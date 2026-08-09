@@ -1,0 +1,46 @@
+{
+  "contract_version": "1.0.0",
+  "module_id": "example-module",
+  "frame_id": "example-enu",
+  "ladder_id": "example-ladder",
+  "base_url": "./tiles/",
+  "scheme": {
+    "kind": "planar_grid",
+    "tile_size_m": 128,
+    "origin_xy_m": [-512, -512],
+    "grid_size": [2, 2],
+    "id_pattern": "t_{col}_{row}"
+  },
+  "streaming": {
+    "load_radius_m": 420,
+    "unload_radius_m": 640,
+    "prefetch_along_heading_m": 260,
+    "max_concurrent_requests": 6
+  },
+  "tiles": [
+    {
+      "tile_id": "t_0_0",
+      "col": 0,
+      "row": 0,
+      "bbox": { "frame": "example-enu", "min": [-512, -512, 0], "max": [-384, -384, 40] },
+      "zone": "hero",
+      "asset_count": 12,
+      "content": [
+        { "level": 0, "url": "t_0_0.lod0.glb", "format": "glb", "byte_size": 240000, "max_geometric_error_m": 0.2 },
+        { "level": 2, "url": "t_0_0.lod2.glb", "format": "glb", "byte_size": 9000, "max_geometric_error_m": 8 }
+      ],
+      "foreign_assets": ["urn:d3d:other-module:big_structure"]
+    },
+    {
+      "tile_id": "t_1_1",
+      "col": 1,
+      "row": 1,
+      "bbox": { "frame": "example-enu", "min": [-384, -384, 0], "max": [-256, -256, 40] },
+      "zone": "context",
+      "asset_count": 3,
+      "content": [
+        { "level": 2, "url": "t_1_1.lod2.glb", "format": "glb", "byte_size": 4000, "max_geometric_error_m": 8 }
+      ]
+    }
+  ]
+}

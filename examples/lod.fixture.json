@@ -1,0 +1,46 @@
+{
+  "contract_version": "1.0.0",
+  "module_id": "example-module",
+  "ladder_id": "example-ladder",
+  "levels": [
+    {
+      "level": 0,
+      "name": "inspect",
+      "intent": "inspect",
+      "max_geometric_error_m": 0.01,
+      "representation": "cad_solid",
+      "payload_format": "glb",
+      "triangle_budget": 2000000,
+      "selectable": true,
+      "carries_metadata": true
+    },
+    {
+      "level": 1,
+      "name": "traverse",
+      "intent": "traverse",
+      "max_geometric_error_m": 0.5,
+      "representation": "mesh",
+      "payload_format": "glb",
+      "triangle_budget": 60000,
+      "streamed": true
+    },
+    {
+      "level": 2,
+      "name": "context",
+      "intent": "context",
+      "max_geometric_error_m": 8,
+      "representation": "block",
+      "payload_format": "glb",
+      "triangle_budget": 4000,
+      "selectable": false,
+      "streamed": true
+    }
+  ],
+  "selection": {
+    "policy": "screen_space_error",
+    "default_sse_budget_px": 12,
+    "mode_sse_budget_px": { "inspect": 2, "walk": 12, "map": 48, "tour": 8 },
+    "hysteresis": 0.15
+  },
+  "notes": "Fixture demonstrating that inspect and traverse levels share one geometric-error axis."
+}

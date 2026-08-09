@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.digital-3d.org/v1/lod.schema.json",
+  "title": "LOD ladder",
+  "description": "Declares a module's level-of-detail ladder. The unifying idea of this contract set: every level is placed on ONE objective axis, max_geometric_error_m, regardless of whether it was authored for CAD inspection or for district traversal. A viewer mode does not get its own ladder; it gets an error budget on the shared ladder. That is what lets a CAD-grade bridge and a streamed neighbourhood coexist in one scene without forking the viewer. See VIEWER-MODES.md.",
+  "type": "object",
+  "properties": {
+    "contract_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/contract_version" },
+    "module_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+    "ladder_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+    "levels": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/level" }
+    },
+    "selection": {
+      "type": "object",
+      "description": "How a consumer chooses a level. Both viewers MUST implement screen_space_error selection so that a shared scene resolves consistently; distance bands are a debugging aid only.",
+      "properties": {
+        "policy": {
+          "type": "string",
+          "enum": ["screen_space_error", "distance_band"],
+          "default": "screen_space_error"
+        },
+        "default_sse_budget_px": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Refine a node while its screen-space error exceeds this many pixels."
+        },
+        "mode_sse_budget_px": {
+          "type": "object",
+          "description": "Per-viewer-mode override of the error budget. This single object is the entire technical difference between 'inspect the bridge in CAD detail' and 'walk the district efficiently'.",
+          "properties": {
+            "inspect": { "type": "number", "exclusiveMinimum": 0 },
+            "walk": { "type": "number", "exclusiveMinimum": 0 },
+            "map": { "type": "number", "exclusiveMinimum": 0 },
+            "tour": { "type": "number", "exclusiveMinimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "hysteresis": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.15,
+          "description": "Fractional dead-band applied to the budget when a level is already resident, to stop popping while the camera dithers on a threshold."
+        }
+      },
+      "required": ["policy", "default_sse_budget_px"],
+      "additionalProperties": false
+    },
+    "notes": { "type": "string" }
+  },
+  "required": ["contract_version", "module_id", "ladder_id", "levels", "selection"],
+  "additionalProperties": false,
+  "$defs": {
+    "level": {
+      "type": "object",
+      "properties": {
+        "level": { "type": "integer", "minimum": 0 },
+        "name": { "type": "string" },
+        "intent": {
+          "type": "string",
+          "enum": ["inspect", "traverse", "context", "silhouette"],
+          "description": "Why the level exists. 'inspect' levels are authored for measurement and part selection. 'traverse' levels are authored to be walked past at speed. A level MAY be reachable in any mode; intent documents authoring purpose, it does not gate access."
+        },
+        "max_geometric_error_m": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Worst-case deviation of this representation from the module's control geometry, in prototype meters. THE shared currency. Monotonically decreasing as level increases is NOT required; consumers sort by this value, not by level index."
+        },
+        "representation": {
+          "type": "string",
+          "enum": [
+            "cad_solid",
+            "segmented_mesh",
+            "mesh",
+            "extruded_footprint",
+            "block",
+            "impostor",
+            "billboard",
+            "point_cloud",
+            "line_skeleton",
+            "map_polygon"
+          ]
+        },
+        "payload_format": {
+          "type": "string",
+          "enum": ["glb", "gltf", "3dtiles", "geojson", "json", "ktx2", "none"]
+        },
+        "triangle_budget": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Approximate upper bound per tile or per asset at this level. Null when not applicable."
+        },
+        "selectable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether individual assets can be picked at this level. Context and silhouette levels are usually merged geometry and are not individually selectable."
+        },
+        "carries_metadata": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether per-asset metadata is delivered with this level. If false, a viewer must fetch metadata separately before it can populate a panel."
+        },
+        "streamed": {
+          "type": "boolean",
+          "default": false,
+          "description": "True when the level is delivered through the tile index rather than as a single payload."
+        },
+        "typical_distance_m": {
+          "type": "object",
+          "description": "Advisory distance band. Debugging and authoring aid only; never normative for selection.",
+          "properties": {
+            "min": { "type": "number", "minimum": 0 },
+            "max": { "type": ["number", "null"] }
+          },
+          "required": ["min"],
+          "additionalProperties": false
+        },
+        "notes": { "type": "string" }
+      },
+      "required": ["level", "name", "intent", "max_geometric_error_m", "representation", "payload_format"],
+      "additionalProperties": false
+    }
+  }
+}

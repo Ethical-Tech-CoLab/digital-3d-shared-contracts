@@ -1,0 +1,22 @@
+{
+  "contract_version": "1.0.0",
+  "frame_id": "example-enu",
+  "kind": "enu",
+  "units": "meters",
+  "axes": { "x": "east", "y": "north", "z": "up", "handedness": "right" },
+  "anchor": {
+    "lon": -73.989,
+    "lat": 40.703,
+    "height_m": 0,
+    "vertical_datum": "NAVD88",
+    "horizontal_crs": "EPSG:4326",
+    "rationale": "Self-test fixture. Not a real frame; the district publishes its own."
+  },
+  "vertical_datum_offsets_m": { "NAVD88": 0, "MHW": 0.59, "MSL": -0.07, "MLLW": -0.85 },
+  "valid_radius_m": 4000,
+  "max_planar_error_m": 1.26,
+  "ellipsoid": { "name": "WGS84", "semi_major_axis_m": 6378137.0, "inverse_flattening": 298.257223563 },
+  "render_convention": { "gltf_up_axis": "Y", "scene_to_render": "(x, y, z) -> (x, z, -y)" },
+  "confidence": "A",
+  "notes": "Fixture used by tools/validate.mjs to prove the georeference schema accepts a minimal valid document."
+}

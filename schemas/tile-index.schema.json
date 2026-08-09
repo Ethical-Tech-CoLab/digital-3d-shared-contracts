@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.digital-3d.org/v1/tile-index.schema.json",
+  "title": "Tile index",
+  "description": "Spatial index for streamed content. Deliberately close to 3D Tiles semantics (bounding volume plus geometric error plus refinement) so a module can migrate to a full 3D Tiles pipeline later without changing this contract, but flat and small enough to hand-author and to diff in review.",
+  "type": "object",
+  "properties": {
+    "contract_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/contract_version" },
+    "module_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+    "frame_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+    "ladder_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+    "base_url": { "type": "string" },
+    "scheme": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["planar_grid"],
+          "description": "v1 ships a single flat grid in scene ENU meters. Sufficient for a district; explicitly not a global scheme."
+        },
+        "tile_size_m": { "type": "number", "exclusiveMinimum": 0 },
+        "origin_xy_m": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Scene-frame XY of the lower-left corner of tile (0,0)."
+        },
+        "grid_size": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "[columns, rows]."
+        },
+        "id_pattern": {
+          "type": "string",
+          "const": "t_{col}_{row}",
+          "description": "Tile IDs are derived, not arbitrary, so a consumer can compute a tile ID from a position without a lookup."
+        }
+      },
+      "required": ["kind", "tile_size_m", "origin_xy_m", "grid_size", "id_pattern"],
+      "additionalProperties": false
+    },
+    "streaming": {
+      "type": "object",
+      "description": "Advice to the consumer's streaming manager. Advisory, not normative, but ignoring it will cost frame time.",
+      "properties": {
+        "load_radius_m": { "type": "number", "exclusiveMinimum": 0 },
+        "unload_radius_m": { "type": "number", "exclusiveMinimum": 0 },
+        "prefetch_along_heading_m": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Extra distance to prefetch ahead of the camera's travel direction. A tour player SHOULD raise this to cover its known future route."
+        },
+        "max_concurrent_requests": { "type": "integer", "minimum": 1, "default": 6 }
+      },
+      "required": ["load_radius_m", "unload_radius_m"],
+      "additionalProperties": false
+    },
+    "tiles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tile" }
+    },
+    "provenance": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/provenance" }
+  },
+  "required": ["contract_version", "module_id", "frame_id", "ladder_id", "scheme", "streaming", "tiles"],
+  "additionalProperties": false,
+  "$defs": {
+    "tile": {
+      "type": "object",
+      "properties": {
+        "tile_id": { "type": "string", "pattern": "^t_-?\\d+_-?\\d+$" },
+        "col": { "type": "integer" },
+        "row": { "type": "integer" },
+        "bbox": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/bbox_scene" },
+        "bbox_geodetic": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/bbox_geodetic" },
+        "zone": {
+          "type": "string",
+          "enum": ["hero", "walkable", "context", "outside"],
+          "description": "Fidelity zone the tile falls in. Drives which levels are built, not which are selected."
+        },
+        "asset_count": { "type": "integer", "minimum": 0 },
+        "content": {
+          "type": "array",
+          "description": "Available payloads for this tile, one per LOD level built.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "level": { "type": "integer", "minimum": 0 },
+              "url": { "type": "string" },
+              "format": {
+                "type": "string",
+                "enum": ["glb", "gltf", "3dtiles", "geojson", "json", "ktx2", "none"]
+              },
+              "byte_size": { "type": "integer", "minimum": 0 },
+              "max_geometric_error_m": { "type": "number", "minimum": 0 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            },
+            "required": ["level", "url", "format"],
+            "additionalProperties": false
+          }
+        },
+        "foreign_assets": {
+          "type": "array",
+          "items": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/asset_urn" },
+          "description": "Assets owned by another module that overlap this tile. The consuming viewer must ensure the owning module's content is resident when this tile is. This is how the Manhattan Bridge becomes visible from a DUMBO street without the district owning one triangle of it."
+        }
+      },
+      "required": ["tile_id", "col", "row", "bbox", "zone", "content"],
+      "additionalProperties": false
+    }
+  }
+}

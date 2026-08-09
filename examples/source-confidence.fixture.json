@@ -1,0 +1,28 @@
+{
+  "contract_version": "1.0.0",
+  "module_id": "example-module",
+  "grades": {
+    "A": "Derived from an official dimension, an archival drawing, or an authoritative published dataset.",
+    "B": "Derived from multiple consistent photographs or imagery combined with known control geometry.",
+    "C": "Derived from an existing mesh, from photogrammetry aligned to control, or reconstructed from a proxy attribute.",
+    "D": "Inferred, decorative, or placeholder. Never citable as a dimension."
+  },
+  "weakest_link_rule": true,
+  "tier_rule": "No Tier C source may override Tier A geometry.",
+  "sources": [
+    {
+      "source_id": "SRC-000",
+      "title": "Fixture source",
+      "tier": "A",
+      "publisher": "Contracts self-test",
+      "license": "CC0-1.0",
+      "attribution_required": false,
+      "native_crs": "EPSG:4326",
+      "vertical_datum": "NAVD88",
+      "units": "meters",
+      "positional_accuracy_m": 0.61,
+      "grants_confidence": "A",
+      "verified": true
+    }
+  ]
+}

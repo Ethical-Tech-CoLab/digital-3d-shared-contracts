@@ -1,0 +1,37 @@
+{
+  "contract_version": "1.0.0",
+  "module_id": "example-module",
+  "title": "Example Module",
+  "module_version": "1.0.0",
+  "owner": { "team": "Contracts self-test", "repository": "digital-3d-shared-contracts" },
+  "authoritative_for": ["nothing; this is a schema fixture"],
+  "depends_on": [
+    { "module_id": "other-module", "manifest_url": "../other/other-manifest.json", "required": false }
+  ],
+  "georeference": { "url": "./georeference.json" },
+  "placement": {
+    "frame": "example-enu",
+    "translation_m": [0, 0, 0],
+    "yaw_deg": 0,
+    "scale": 1,
+    "confidence": "D",
+    "provisional": true,
+    "open_questions": ["OQ-000"],
+    "notes": "Fixture placement. Demonstrates the provisional flag."
+  },
+  "lod_ladder": { "url": "./lod.json" },
+  "asset_registry_url": "./asset-registry.json",
+  "tile_index_url": "./tile-index.json",
+  "modes": ["walk", "map", "inspect", "tour"],
+  "proxy": { "asset_id": "urn:d3d:example-module:proxy", "max_level": 2 },
+  "handoff": {
+    "supported": true,
+    "target_mode": "inspect",
+    "preserve_camera": true,
+    "entry_points": [
+      { "entry_id": "main", "label": "Inspect this module", "focus_asset": "urn:d3d:example-module:thing" }
+    ]
+  },
+  "attribution": ["Fixture data, no attribution required."],
+  "not_implemented_yet": ["everything; this is a fixture"]
+}

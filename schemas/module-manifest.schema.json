@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.digital-3d.org/v1/module-manifest.schema.json",
+  "title": "Module manifest",
+  "description": "The single entry point one module publishes so another may consume it. manhattan-bridge-3d publishes 'bridge-manifest.json' against this schema; dumbo-district-3d publishes 'district-manifest.json' against it. A consuming viewer needs no other knowledge of the producer: no source tree access, no build scripts, no shared geometry. This document is the whole dependency surface.",
+  "type": "object",
+  "properties": {
+    "contract_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/contract_version" },
+    "module_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+    "title": { "type": "string" },
+    "subtitle": { "type": "string" },
+    "module_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/semver" },
+    "owner": {
+      "type": "object",
+      "properties": {
+        "team": { "type": "string" },
+        "repository": { "type": "string" }
+      },
+      "required": ["team", "repository"],
+      "additionalProperties": false
+    },
+    "authoritative_for": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Plain-language statement of what this module owns. Any asset outside this list MUST be consumed from another module, never rebuilt. This is the anti-duplication clause in machine-readable form."
+    },
+    "depends_on": {
+      "type": "array",
+      "description": "Other modules this one consumes. Declared so a viewer can resolve a whole stack from one root manifest.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "module_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+          "manifest_url": { "type": "string" },
+          "required": {
+            "type": "boolean",
+            "default": false,
+            "description": "When false, the consuming viewer MUST degrade gracefully if the manifest is absent. Every cross-module dependency should start life as optional so neither project can break the other's build."
+          },
+          "min_module_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/semver" }
+        },
+        "required": ["module_id", "manifest_url"],
+        "additionalProperties": false
+      }
+    },
+    "georeference": {
+      "description": "Inline georeference, or a URL to one.",
+      "oneOf": [
+        { "$ref": "https://contracts.digital-3d.org/v1/georeference.schema.json" },
+        { "type": "object", "properties": { "url": { "type": "string" } }, "required": ["url"], "additionalProperties": false }
+      ]
+    },
+    "placement": {
+      "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/placement",
+      "description": "Where this module's local engineering frame sits inside the shared scene frame. A module whose geometry is authored in its own frame (the bridge, origin at main-span midpoint) supplies this to become placeable. A module authored directly in the shared frame (the district) omits it."
+    },
+    "lod_ladder": {
+      "oneOf": [
+        { "$ref": "https://contracts.digital-3d.org/v1/lod.schema.json" },
+        { "type": "object", "properties": { "url": { "type": "string" } }, "required": ["url"], "additionalProperties": false }
+      ]
+    },
+    "asset_registry_url": { "type": "string" },
+    "tile_index_url": { "type": "string" },
+    "source_register_url": { "type": "string" },
+    "modes": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Viewer modes this module can participate in. A module that only supplies context geometry declares ['walk','map']; the bridge declares ['inspect','walk','map','tour'].",
+      "items": { "$ref": "#/$defs/mode_id" }
+    },
+    "proxy": {
+      "type": "object",
+      "description": "How this module appears inside somebody else's scene when it is NOT the focus. The bridge's proxy is what a pedestrian on Washington Street sees: correct silhouette, correct position, a few thousand triangles, no rivets. Publishing a proxy is what makes 'do not duplicate geometry' affordable for the consumer.",
+      "properties": {
+        "asset_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/asset_urn" },
+        "max_level": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Highest LOD level a foreign consumer may refine this module to while it is a proxy. Caps the cost a neighbouring module can accidentally impose on a walk-mode frame budget."
+        },
+        "bbox_geodetic": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/bbox_geodetic" },
+        "notes": { "type": "string" }
+      },
+      "required": ["asset_id", "max_level"],
+      "additionalProperties": false
+    },
+    "handoff": {
+      "type": "object",
+      "description": "How a viewer transitions from seeing this module as scenery to inspecting it in the owner's own mode, and back. This is the mechanism that lets one application host both a walkable district and a CAD-grade bridge without either team writing the other's UI. See VIEWER-MODES.md section 4.",
+      "properties": {
+        "supported": { "type": "boolean" },
+        "target_mode": { "$ref": "#/$defs/mode_id" },
+        "entry_points": {
+          "type": "array",
+          "description": "Named places a tour or a UI affordance can hand off at. A tour script references these by id.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entry_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id" },
+              "label": { "type": "string" },
+              "focus_asset": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/asset_urn" },
+              "camera": { "$ref": "#/$defs/camera_pose" },
+              "trigger_volume": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/bbox_scene" }
+            },
+            "required": ["entry_id", "label"],
+            "additionalProperties": false
+          }
+        },
+        "preserve_camera": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true the consuming viewer keeps world camera position across the transition so the user never loses their place. Requires both modules to share a frame, which the contract guarantees."
+        },
+        "ui_url": {
+          "type": "string",
+          "description": "Optional URL of a self-contained UI bundle the owner ships for its own mode. Absent means the consumer renders only the shared metadata panel."
+        }
+      },
+      "required": ["supported"],
+      "additionalProperties": false
+    },
+    "attribution": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Credit lines a consuming viewer MUST display when this module's geometry is on screen."
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Module-private payloads, keyed by the module_id that owns the convention. A consumer MUST ignore extensions it does not recognise. Use this rather than inventing top-level fields, which are rejected by design.",
+      "propertyNames": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+      "additionalProperties": { "type": "object" }
+    },
+    "not_implemented_yet": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Honest statement of gaps. A consuming viewer MAY surface these so a reviewer is never misled about what is real."
+    },
+    "provenance": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/provenance" }
+  },
+  "required": [
+    "contract_version",
+    "module_id",
+    "title",
+    "module_version",
+    "owner",
+    "authoritative_for",
+    "georeference",
+    "lod_ladder",
+    "modes"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "mode_id": {
+      "type": "string",
+      "enum": ["inspect", "walk", "map", "tour"],
+      "description": "inspect = CAD-grade examination of a single structure. walk = first-person traversal of a district. map = 2D plan view. tour = scripted playback, a driver rather than a renderer."
+    },
+    "camera_pose": {
+      "type": "object",
+      "properties": {
+        "position": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/position" },
+        "target": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/position" },
+        "fov_deg": { "type": "number", "exclusiveMinimum": 0, "maximum": 179 }
+      },
+      "required": ["position"],
+      "additionalProperties": false
+    }
+  }
+}

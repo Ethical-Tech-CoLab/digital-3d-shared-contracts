@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.digital-3d.org/v1/georeference.schema.json",
+  "title": "Georeference",
+  "description": "Defines a local scene frame and how it binds to the Earth. Every module that publishes geometry MUST publish exactly one of these, and every asset it publishes MUST be expressed in a frame declared here. See COORDINATE-SYSTEM.md.",
+  "type": "object",
+  "properties": {
+    "contract_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/contract_version" },
+    "frame_id": {
+      "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/id",
+      "description": "Name of the scene frame this document defines, e.g. 'nyc-harbor-enu'."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["enu"],
+      "description": "Frame construction. v1 supports local East-North-Up tangent planes only; that is sufficient for a district-scale twin and keeps float32 precision usable in the browser."
+    },
+    "units": { "type": "string", "const": "meters" },
+    "axes": {
+      "type": "object",
+      "description": "Fixed for kind=enu. Stated explicitly so that no consumer has to assume.",
+      "properties": {
+        "x": { "type": "string", "const": "east" },
+        "y": { "type": "string", "const": "north" },
+        "z": { "type": "string", "const": "up" },
+        "handedness": { "type": "string", "const": "right" }
+      },
+      "required": ["x", "y", "z", "handedness"],
+      "additionalProperties": false
+    },
+    "anchor": {
+      "type": "object",
+      "description": "The geodetic point that maps to (0,0,0) in this frame. Frozen by convention: once published it MUST NOT change within a contract major version, because every asset coordinate in every module depends on it.",
+      "properties": {
+        "lon": { "type": "number", "minimum": -180, "maximum": 180 },
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "height_m": { "type": "number", "default": 0 },
+        "vertical_datum": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/vertical_datum" },
+        "horizontal_crs": {
+          "type": "string",
+          "default": "EPSG:4326",
+          "description": "CRS the anchor lon/lat are expressed in."
+        },
+        "rationale": { "type": "string" }
+      },
+      "required": ["lon", "lat", "vertical_datum"],
+      "additionalProperties": false
+    },
+    "vertical_datum_offsets_m": {
+      "type": "object",
+      "description": "Offsets that let any consumer convert between vertical datums in this locality. Value is the height of the named datum above the frame's anchor vertical datum, in meters. Producers MUST cite a source for each entry in source_refs.",
+      "additionalProperties": { "type": "number" },
+      "examples": [{ "NAVD88": 0, "MHW": 0.59, "MSL": 0.51 }]
+    },
+    "valid_radius_m": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Radius from the anchor within which the tangent-plane approximation stays inside max_planar_error_m. Consumers MUST NOT place geometry outside this radius using this frame."
+    },
+    "max_planar_error_m": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Worst-case horizontal error introduced by the tangent-plane approximation at valid_radius_m."
+    },
+    "ellipsoid": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "const": "WGS84" },
+        "semi_major_axis_m": { "type": "number", "const": 6378137.0 },
+        "inverse_flattening": { "type": "number", "const": 298.257223563 }
+      },
+      "required": ["name", "semi_major_axis_m", "inverse_flattening"],
+      "additionalProperties": false
+    },
+    "render_convention": {
+      "type": "object",
+      "description": "How a viewer converts this frame into its render frame. Stated so that both viewers do it identically.",
+      "properties": {
+        "gltf_up_axis": { "type": "string", "const": "Y" },
+        "scene_to_render": {
+          "type": "string",
+          "const": "(x, y, z) -> (x, z, -y)",
+          "description": "Scene ENU Z-up to glTF/three.js Y-up. East stays +X, Up becomes +Y, North becomes -Z."
+        }
+      },
+      "required": ["gltf_up_axis", "scene_to_render"],
+      "additionalProperties": false
+    },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Source register IDs backing the anchor and the datum offsets."
+    },
+    "confidence": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/confidence" },
+    "notes": { "type": "string" },
+    "provenance": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/provenance" }
+  },
+  "required": [
+    "contract_version",
+    "frame_id",
+    "kind",
+    "units",
+    "axes",
+    "anchor",
+    "valid_radius_m",
+    "render_convention",
+    "confidence"
+  ],
+  "additionalProperties": false
+}

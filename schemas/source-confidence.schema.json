@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.digital-3d.org/v1/source-confidence.schema.json",
+  "title": "Source register and confidence grading",
+  "description": "The shared evidence model. Both modules grade every asset A-D by how the geometry was obtained, not by how good it looks. Generalised from manhattan-bridge-3d/CONFIDENCE-MODEL.md so that repository can adopt this contract without regrading anything.",
+  "type": "object",
+  "properties": {
+    "contract_version": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/contract_version" },
+    "module_id": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+    "grades": {
+      "type": "object",
+      "description": "Normative definition of the four grades. Reproduced in every register so a consumer never has to guess.",
+      "properties": {
+        "A": { "type": "string" },
+        "B": { "type": "string" },
+        "C": { "type": "string" },
+        "D": { "type": "string" }
+      },
+      "required": ["A", "B", "C", "D"],
+      "additionalProperties": false
+    },
+    "weakest_link_rule": {
+      "type": "boolean",
+      "const": true,
+      "description": "Normative and non-negotiable: an asset's confidence is the MINIMUM of its own basis grade and the grade of every control value it consumes. Build scripts MUST enforce this."
+    },
+    "tier_rule": {
+      "type": "string",
+      "const": "No Tier C source may override Tier A geometry.",
+      "description": "Restates the source hierarchy rule from both AGENT-INSTRUCTIONS.md files."
+    },
+    "sources": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/source" }
+    },
+    "provenance": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/provenance" }
+  },
+  "required": ["contract_version", "module_id", "grades", "weakest_link_rule", "sources"],
+  "additionalProperties": false,
+  "$defs": {
+    "source": {
+      "type": "object",
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "pattern": "^[A-Z]{2,6}-\\d{3}$",
+          "description": "Stable register ID, e.g. 'SRC-001' or 'DSRC-001'. Module prefixes MUST be distinct so IDs never collide across modules."
+        },
+        "title": { "type": "string" },
+        "tier": {
+          "type": "string",
+          "enum": ["A", "B", "C"],
+          "description": "Source hierarchy tier. A = authoritative official data, B = imagery and secondary reference, C = derived or reconstructed."
+        },
+        "publisher": { "type": "string" },
+        "url": { "type": "string" },
+        "accessed": { "type": "string", "format": "date" },
+        "license": {
+          "type": "string",
+          "description": "SPDX identifier where one exists, otherwise a short name. Required so downstream redistribution stays lawful."
+        },
+        "attribution_required": { "type": "boolean", "default": false },
+        "attribution_text": {
+          "type": "string",
+          "description": "Exact credit line a viewer MUST display when this source contributes to rendered geometry."
+        },
+        "native_crs": { "type": "string", "description": "e.g. 'EPSG:2263'." },
+        "vertical_datum": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/vertical_datum" },
+        "units": { "type": "string" },
+        "positional_accuracy_m": { "type": "number", "minimum": 0 },
+        "grants_confidence": {
+          "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/confidence",
+          "description": "The highest confidence an asset derived solely from this source may claim."
+        },
+        "verified": { "type": "boolean", "default": false },
+        "notes": { "type": "string" }
+      },
+      "required": ["source_id", "title", "tier", "license", "grants_confidence"],
+      "additionalProperties": false
+    }
+  }
+}
