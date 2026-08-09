@@ -28,6 +28,19 @@ obviously-not-real placeholder, label it as such in the UI, and open a request w
 DUMBO viewer does exactly this today: the Manhattan Bridge appears as a red wireframe envelope built
 from the bridge team's own published control dimensions, with an integration notice explaining why.
 
+The rule also applies **within** a module, and this is the case that actually bit us. DUMBO builds a
+Manhattan skyline for its horizon from the same citywide footprint dataset it builds its own
+buildings from. The horizon query box overlapped the district, so 226 buildings were emitted twice:
+once as real, lit, surveyed geometry, and again as pale unlit far-field blocks drawn on top of
+them — visible as white boxes standing in the middle of the street.
+
+> Any generator that draws from a citywide dataset must subtract the region its own module already
+> owns, and hold a minimum standoff distance from the camera's reachable area.
+
+Whenever a module both *owns* a region and *approximates* the surroundings, name the region once and
+have the approximation exclude it. The far-field builder now drops any block whose centroid falls
+inside the district boundary ring, and any block closer than 700 m.
+
 ---
 
 ## 2. Changing a shared contract

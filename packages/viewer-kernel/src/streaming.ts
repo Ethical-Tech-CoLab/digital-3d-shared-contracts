@@ -41,13 +41,29 @@ export interface StreamerOptions {
   extraPrefetchM?: number;
   /** Points on a known future route. Tiles near these are treated as if the camera were there. */
   plannedRoute?: Vec3[];
+  /** Current time in seconds, for retry backoff. Defaults to performance.now()/1000. */
+  nowS?: number;
 }
+
+/** Retry schedule for a tile whose payload failed to load, in seconds. */
+const RETRY_BACKOFF_S = [1, 3, 8, 20];
 
 export class TileStreamer {
   private readonly index: TileIndex;
   private readonly selector: LodSelector;
   private residentIds = new Set<string>();
-  private residentLevels = new Map<string, number>();
+  /**
+   * Level actually confirmed loaded per tile, NOT the level most recently chosen.
+   *
+   * The distinction matters: if the shell's fetch fails and the streamer has already recorded the
+   * intended level, the tile is never offered again and stays a permanent hole in the world. So
+   * nothing is recorded here until the shell calls markLoaded.
+   */
+  private confirmed = new Map<string, number>();
+  /** Tiles currently being fetched by the shell, so they are not requested twice. */
+  private inFlight = new Map<string, number>();
+  /** Failure counts and the time after which a retry is allowed. */
+  private failures = new Map<string, { count: number; retryAfterS: number }>();
 
   constructor(index: TileIndex, selector: LodSelector) {
     this.index = index;
@@ -129,7 +145,7 @@ export class TileStreamer {
       const availableLevels = tile.content.map((c) => c.level);
       const chosen = this.selector.select(Math.max(cameraDistance, 1), viewport, {
         mode,
-        currentLevel: this.residentLevels.get(tile.tile_id),
+        currentLevel: this.confirmed.get(tile.tile_id),
         availableLevels,
       });
 
@@ -144,13 +160,30 @@ export class TileStreamer {
 
     decisions.sort((a, b) => a.priority - b.priority);
 
-    const added = decisions.filter(
-      (d) => !this.residentIds.has(d.tile.tile_id) || this.residentLevels.get(d.tile.tile_id) !== d.level,
-    );
+    const nowS = options.nowS ?? performance.now() / 1000;
+
+    const added = decisions.filter((d) => {
+      const id = d.tile.tile_id;
+      // Already showing this exact level: nothing to do.
+      if (this.confirmed.get(id) === d.level) return false;
+      // Already being fetched at this level: do not ask twice.
+      if (this.inFlight.get(id) === d.level) return false;
+      // Failed recently: wait out the backoff rather than hammering a server that is down.
+      const failure = this.failures.get(id);
+      if (failure && nowS < failure.retryAfterS) return false;
+      return true;
+    });
+
     const removed = [...this.residentIds].filter((id) => !nextIds.has(id));
+    for (const id of removed) {
+      this.confirmed.delete(id);
+      this.inFlight.delete(id);
+      // Leaving the area clears the failure history: the next approach gets a clean try.
+      this.failures.delete(id);
+    }
 
     this.residentIds = nextIds;
-    this.residentLevels = new Map(decisions.map((d) => [d.tile.tile_id, d.level]));
+    for (const decision of added) this.inFlight.set(decision.tile.tile_id, decision.level);
 
     const foreign = new Set<string>();
     for (const decision of decisions) {
@@ -160,8 +193,44 @@ export class TileStreamer {
     return { resident: decisions, added, removed, foreignAssets: [...foreign] };
   }
 
+  /**
+   * The shell reports a payload that actually arrived and is now in the scene.
+   *
+   * Until this is called the tile is not considered present, so a silent fetch failure cannot
+   * leave a permanent hole.
+   */
+  markLoaded(tileId: string, level: number): void {
+    this.confirmed.set(tileId, level);
+    this.inFlight.delete(tileId);
+    this.failures.delete(tileId);
+  }
+
+  /**
+   * The shell reports a payload that failed. The tile becomes eligible again after a backoff,
+   * so a transient outage — a dev server restarting, a flaky connection — heals itself.
+   */
+  markFailed(tileId: string, nowS = performance.now() / 1000): void {
+    this.inFlight.delete(tileId);
+    const previous = this.failures.get(tileId);
+    const count = (previous?.count ?? 0) + 1;
+    const wait = RETRY_BACKOFF_S[Math.min(count - 1, RETRY_BACKOFF_S.length - 1)];
+    this.failures.set(tileId, { count, retryAfterS: nowS + wait });
+  }
+
+  /** Tiles that have failed at least once and are waiting to be retried. */
+  get retrying(): number {
+    return this.failures.size;
+  }
+
+  /** Level confirmed present for a tile, or undefined if nothing has loaded yet. */
+  levelOf(tileId: string): number | undefined {
+    return this.confirmed.get(tileId);
+  }
+
   reset(): void {
     this.residentIds.clear();
-    this.residentLevels.clear();
+    this.confirmed.clear();
+    this.inFlight.clear();
+    this.failures.clear();
   }
 }

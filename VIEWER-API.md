@@ -115,6 +115,31 @@ without the district owning a triangle of it.
 Load and unload radii differ, giving a hysteresis band so a camera loitering on a tile boundary does
 not thrash. `plannedRoute` replaces heading-guessing with a route the player actually knows.
 
+### The shell must report what actually happened
+
+`update()` returns an *intention*. Only the shell knows whether the fetch succeeded, so it must say
+so:
+
+```ts
+for (const t of added) {
+  try {
+    await load(t);   streamer.markLoaded(t.tileId, t.level);
+  } catch (err) {
+    streamer.markFailed(t.tileId, t.level, err);
+  }
+}
+```
+
+A streamer that recorded residency from its own decisions would believe a failed tile was loaded and
+never offer it again — one dropped request became a permanent hole in the city. Residency is
+therefore recorded only on `markLoaded`. `markFailed` schedules a retry on an exponential backoff
+(1 s, 3 s, 8 s, 20 s, then every 20 s), and the tile is not re-offered while a request is in flight
+or a backoff is pending.
+
+`streamer.retrying` is the number of tiles currently in that failed-and-waiting state. It is the
+honest signal for a "still loading" or "connection trouble" indicator, and its fall to zero is how a
+shell knows an outage has healed and it can clear a transient warning.
+
 ---
 
 ## 6. Events
@@ -143,12 +168,15 @@ A listener that throws is caught and logged; one bad panel must not take down th
 A conforming shell:
 
 1. Renders `TileStreamer`'s resident set at the level it asked for.
-2. Applies the fixed scene-to-render conversion, and does not invent its own.
-3. Renders the shared metadata contract for any selected asset.
-4. Displays every line from `registry.attributions()`.
-5. Surfaces `module:missing` and `warning` to the user rather than swallowing them.
-6. Supplies `TourPlayer` with `resolveAsset`, and ideally `router` and `groundHeight`.
-7. Implements `tour:capture` by grabbing its own framebuffer.
+2. Reports every load outcome back with `markLoaded` / `markFailed`.
+3. Applies the fixed scene-to-render conversion, and does not invent its own.
+4. Renders the shared metadata contract for any selected asset.
+5. Displays every line from `registry.attributions()`.
+6. Surfaces `module:missing` and `warning` to the user rather than swallowing them.
+7. Groups repeated warnings by `code` rather than printing one line per occurrence, and clears
+   transient ones once the underlying condition has cleared.
+8. Supplies `TourPlayer` with `resolveAsset`, and ideally `router` and `groundHeight`.
+9. Implements `tour:capture` by grabbing its own framebuffer.
 
 Optionally it may implement its own mode — the bridge's `inspect`, with its part tree, dimension
 panel and exploded view — and advertise it in `handoff.ui_url`.
