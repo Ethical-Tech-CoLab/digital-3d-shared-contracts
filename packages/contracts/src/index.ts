@@ -633,6 +633,11 @@ export type PropKind =
   | 'person'
   | 'custom';
 
+export type Season = 'winter' | 'spring' | 'summer' | 'autumn';
+
+/** An sRGB colour as #rrggbb. */
+export type HexColour = string;
+
 export interface ScenePrototype {
   prototype_id: string;
   kind: PropKind;
@@ -645,6 +650,20 @@ export interface ScenePrototype {
   source_basis: SourceBasis[];
   source_refs?: string[];
   confidence: Confidence;
+  /**
+   * What this prototype looks like through the year. A street tree is not one colour: a ginkgo is
+   * pure yellow for about ten days in November, a Callery pear is white in April. Rendering both
+   * mid-green all year is the main reason procedural vegetation reads as identical props.
+   */
+  seasonal_foliage?: Partial<Record<Season, HexColour>>;
+  /**
+   * True when the prototype loses its leaves. Distinct from the winter colour because it changes the
+   * geometry, not the tint: a bare tree is a crown of twigs, and a solid mass of winter brown reads
+   * as a dead tree rather than a dormant one.
+   */
+  deciduous?: boolean;
+  /** Module-private payloads keyed by module_id. A viewer MUST ignore ones it does not recognise. */
+  extensions?: Record<string, Record<string, unknown>>;
   notes?: string;
 }
 

@@ -1,0 +1,72 @@
+{
+  "contract_version": "1.0.0",
+  "module_id": "example-module",
+  "frame_id": "example-enu",
+  "prototypes": [
+    {
+      "prototype_id": "tree_ginkgo",
+      "kind": "tree",
+      "label": "Ginkgo",
+      "format": "procedural",
+      "size_m": [8.0, 8.0, 10.0],
+      "billboard": false,
+      "casts_shadow": false,
+      "source_basis": ["official_dataset", "procedural"],
+      "source_refs": ["EXAMPLE-001"],
+      "confidence": "C",
+      "seasonal_foliage": {
+        "spring": "#7fa04d",
+        "summer": "#5a763f",
+        "autumn": "#e0b52e",
+        "winter": "#6e6558"
+      },
+      "deciduous": true,
+      "notes": "Position, species and trunk diameter are authoritative; the canopy form and its seasonal colours are plausible for the genus rather than measured, so the rendered prop is graded C. The autumn value is the reason this field exists: a ginkgo is pure yellow for about ten days in November and mid-green for the rest of the year."
+    },
+    {
+      "prototype_id": "tree_pinus",
+      "kind": "tree",
+      "label": "Pine",
+      "format": "procedural",
+      "size_m": [8.0, 8.0, 11.0],
+      "source_basis": ["official_dataset", "procedural"],
+      "confidence": "C",
+      "seasonal_foliage": {
+        "spring": "#3f5f38",
+        "summer": "#3a5936",
+        "autumn": "#3a5936",
+        "winter": "#375434"
+      },
+      "deciduous": false,
+      "notes": "An evergreen, to exercise the case the flag exists for: it keeps its needles, so a viewer must not swap it to bare geometry in winter."
+    },
+    {
+      "prototype_id": "prop_bench",
+      "kind": "bench",
+      "label": "Bench",
+      "format": "procedural",
+      "size_m": [1.8, 0.6, 0.9],
+      "source_basis": ["official_dataset", "procedural"],
+      "source_refs": ["EXAMPLE-002"],
+      "confidence": "C",
+      "extensions": {
+        "example-module": {
+          "material": "timber slat",
+          "note": "Module-private payload. A viewer that does not recognise this key must ignore it."
+        }
+      },
+      "notes": "A prop with no seasonal appearance, which is the common case: the fields are optional and most prototypes omit them."
+    }
+  ],
+  "instances": [
+    { "p": "tree_ginkgo", "xy": [12.5, -30.25], "r": 143, "s": 0.62, "tile": "t_4_3" },
+    { "p": "tree_ginkgo", "xy": [18.0, -30.1], "r": 21, "s": 1.44, "tile": "t_4_3" },
+    { "p": "tree_pinus", "xy": [24.0, -28.6], "r": 300, "s": 0.9, "tile": "t_4_3" },
+    { "p": "prop_bench", "xy": [15.2, -26.0], "z": 2.4, "r": 90, "tile": "t_4_3" }
+  ],
+  "provenance": {
+    "module_id": "example-module",
+    "generated_by": "fixture",
+    "generated_at": "2026-08-10T00:00:00Z"
+  }
+}

@@ -65,6 +65,11 @@
       "type": "string",
       "enum": ["unreviewed", "agent_reviewed", "human_reviewed", "rejected"]
     },
+    "hex_colour": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "description": "An sRGB colour as #rrggbb. Deliberately a string rather than a triple: every consumer in this stack is a renderer, and every renderer parses this form."
+    },
     "vec3": {
       "type": "array",
       "items": { "type": "number" },

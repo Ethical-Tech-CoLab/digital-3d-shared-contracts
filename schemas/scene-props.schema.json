@@ -73,6 +73,27 @@
         "source_basis": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/source_basis" },
         "source_refs": { "type": "array", "items": { "type": "string" } },
         "confidence": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/confidence" },
+        "seasonal_foliage": {
+          "type": "object",
+          "description": "What this prototype looks like through the year, as a colour per season. Present because a street tree is not one colour: a ginkgo is famously pure yellow for about ten days in November and a Callery pear is white in April, and rendering both mid-green all year is the main reason procedural vegetation reads as identical props rather than as trees. A viewer that ignores this simply renders the prototype's default appearance.",
+          "properties": {
+            "spring": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/hex_colour" },
+            "summer": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/hex_colour" },
+            "autumn": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/hex_colour" },
+            "winter": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/hex_colour" }
+          },
+          "additionalProperties": false
+        },
+        "deciduous": {
+          "type": "boolean",
+          "description": "True when the prototype loses its leaves. Distinct from the winter colour because it changes the GEOMETRY, not the tint: a bare tree is a crown of twigs, and drawing it as a solid mass in winter brown reads as a dead tree rather than a dormant one."
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Module-private payloads, keyed by module_id. A viewer MUST ignore extensions it does not recognise.",
+          "propertyNames": { "$ref": "https://contracts.digital-3d.org/v1/common.defs.schema.json#/$defs/module_id" },
+          "additionalProperties": { "type": "object" }
+        },
         "notes": { "type": "string" }
       },
       "required": ["prototype_id", "kind", "source_basis", "confidence"],
