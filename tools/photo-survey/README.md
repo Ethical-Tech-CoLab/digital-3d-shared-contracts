@@ -158,3 +158,20 @@ human does something, it has not been tested by shipping.
 the day, 272 times over. Precision is now *derived* from what actually parsed — the corpus came back
 90 exact, 142 day, 37 year, 3 genuinely unknown — and unparseable input yields no date at all
 rather than a confident wrong one.
+
+**The corpus is biased toward the photogenic, and that is the campaign's most useful output.** The
+first full run of this pipeline settled the promenade decking and the roadway surface immediately —
+both are photographed thousands of times a year — and returned **zero** images for the two
+categories the campaign was actually built to close: the approach arcade and the staircase down to
+street level. People photograph a bridge from its walkway and its waterfront, not from underneath
+the viaduct they drive on. So:
+
+- **Declare the categories you need, not the ones you expect to fill.** An empty category is a
+  measurement. Had the campaign only listed subjects likely to appear, the gap would have been
+  invisible and easy to mistake for coverage.
+- **Report zero-tick categories loudly.** `build_corpus.py` prints the per-category tally, and a
+  category absent from it is the signal to stop harvesting and go to the drawings, the owner, or a
+  targeted field visit.
+
+Crowd-sourcing answers the questions the crowd finds interesting. Those are rarely the questions a
+model is missing, and no amount of additional harvesting changes the distribution.

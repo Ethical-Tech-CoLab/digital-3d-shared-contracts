@@ -216,7 +216,23 @@ def main() -> int:
     if by_category:
         print("by category:")
         for c, n in sorted(by_category.items(), key=lambda kv: -kv[1]):
-            print("   %-16s %3d   grants %s" % (c, n, grants_for[c]))
+            print("   %-16s %3d   grants %s" % (c, n, grants_for.get(c, "appearance")))
+
+    # A category the campaign asked for and the reviewer never ticked is a measurement, not an
+    # absence of news. Crowd-sourced imagery skews hard toward the view worth photographing, which
+    # is systematically not the view a model is missing -- so an empty category is the signal to
+    # stop harvesting and go to the drawings. Printed loudly because it is easy to read a tally of
+    # what was found and never notice what was not.
+    if decisions:
+        empty = [c["id"] for c in cfg["categories"] if not by_category.get(c["id"])]
+        if empty:
+            print()
+            print("CATEGORIES THE CAMPAIGN ASKED FOR AND THE REVIEW NEVER FOUND:")
+            for c in empty:
+                help_text = next((x.get("help", "") for x in cfg["categories"] if x["id"] == c), "")
+                print("   %-16s %s" % (c, help_text[:96]))
+            print("   These are not gaps in the review. They are gaps in what people photograph,")
+            print("   and no amount of further harvesting will change the distribution.")
     print("wrote %s" % out)
     return 0
 
