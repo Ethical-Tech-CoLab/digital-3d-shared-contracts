@@ -13,10 +13,33 @@ and everybody else consumes it through the contract.**
 |---|---|---|
 | Bridge geometry, dimensions, component taxonomy, bridge photogrammetry | `manhattan-bridge-3d` | consume by URN through the bridge manifest |
 | Neighbourhood buildings, streets, waterfront, terrain, property metadata, tile streaming, walking experience | `dumbo-district-3d` | consume by URN through the district manifest |
-| Schemas, coordinate system, viewer kernel, tour player | `digital-3d-shared-contracts` | consume as a dependency |
+| Schemas, coordinate system, viewer kernel, tour player, **the bridge inspect shell** | `digital-3d-shared-contracts` | consume as a dependency, or vendor with `tools/sync_viewer_ui.mjs` |
 
 Each module declares its own authority in `authoritative_for` in its manifest, so the boundary is
 machine-readable rather than folklore.
+
+### The anti-fork rule
+
+> No module may keep its own copy of shared UI. The inspect shell is one codebase.
+
+This rule is stated separately because it was already implied by the anti-duplication rule below
+and was broken anyway. Three bridge repositories each grew their own viewer; when they were finally
+compared, only 2 of 23 source files still matched. The damage was not duplicated code but divided
+features -- each bridge had a panel the other two could not use, so a reader comparing two bridges
+was comparing two different tools.
+
+A rule nobody can check is a preference. So this one is mechanical:
+
+- `packages/bridge-viewer-ui` is the only bridge inspect shell.
+- `tools/sync_viewer_ui.mjs` vendors it into a module and writes `viewer/shared/VIEWER-UI.sha256`.
+- `scripts/check_viewer_sync.mjs` in each module rehashes those files and **fails the build** if any
+  was edited locally. It runs in CI, needs no cross-repository checkout, and so can never skip.
+- A module not yet adopted declares `adopted: false` in `viewer/shared.lock.json` with a tracking
+  issue, and the check warns loudly on every build.
+
+New shared behaviour belongs in the shell, gated on data the module publishes -- a panel that mounts
+only when its evidence document exists. That is how one viewer serves bridges with different
+evidence without anyone needing to fork it. See `VIEWER-ADOPTION.md`.
 
 ### The anti-duplication rule
 

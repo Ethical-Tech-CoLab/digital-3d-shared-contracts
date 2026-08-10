@@ -1,0 +1,28 @@
+# Normalise line endings so a file hashes the same on a Windows checkout and a Linux CI runner.
+#
+# Not cosmetic. Artifacts in this stack are verified by hash -- vendored viewer files against
+# VIEWER-UI.sha256, the canonical frame against its published digest, control documents against the
+# hash recorded in each build. Without this, the same bytes hash two ways on two machines and a
+# provenance check fails for a reason that has nothing to do with provenance. That has already
+# happened once here.
+* text=auto eol=lf
+
+*.md    text eol=lf
+*.py    text eol=lf
+*.json  text eol=lf
+*.mjs   text eol=lf
+*.mts   text eol=lf
+*.js    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+*.glb   binary
+*.gltf  binary
+*.jpg   binary
+*.jpeg  binary
+*.png   binary
+*.pdf   binary
