@@ -106,9 +106,18 @@ reviewer can work through it from a phone rather than only on the machine that b
                "informs": ["tower_manhattan"] } ],
   "categories": [ { "id": "masonry", "label": "masonry", "grants": "material",
                     "help": "shown in the review sheet's legend" } ],
+  "subject_terms": ["Williamsburg Bridge", "Williamsburg"],
   "outputs": { "raw": "...", "decisions": "...", "survey": "...", "review_sheet": "..." }
 }
 ```
+
+**`subject_terms` is optional and orders the review sheet; it never filters.** A geosearch returns
+everything inside the radius, which is right for a district and wrong for a single structure — the
+first Williamsburg Bridge campaign came back 250 photographs of which 187 were basketball courts, a
+sugar refinery and the Manhattan skyline. Listing the subject's name puts the photographs that
+mention it first. Nothing is hidden, dropped or pre-ticked, because a heuristic good enough to sort
+a list is nowhere near good enough to decide what counts as evidence. Omit it and the corpus keeps
+its harvested order.
 
 **Write `help` against the model's own open questions.** A reviewer ticking `arcade` because the
 legend says *"OQ-007: the model draws slender bents, but SRC-004 describes brick piers and arches"*
@@ -175,3 +184,24 @@ the viaduct they drive on. So:
 
 Crowd-sourcing answers the questions the crowd finds interesting. Those are rarely the questions a
 model is missing, and no amount of additional harvesting changes the distribution.
+
+**A corpus is not from one day, so mark what changes.** The first real campaign returned images
+from 1867 to 2026. That is a resource for anything original — granite, ironwork, the towers — and a
+hazard for anything renewed, because a Victorian photograph of a roadway is excellent evidence
+about a surface that was torn up seventy years ago. Declare it per category:
+
+```json
+{ "id": "deck",    "grants": "material", "temporal": "renewed" }
+{ "id": "masonry", "grants": "material", "temporal": "stable"  }
+```
+
+and have the consuming module refuse archival frames as evidence for renewed subjects. The reviewer
+in that campaign got this right without being asked, tagging every pre-1920 image `context` and
+nothing else — which is exactly why it was worth encoding. Correctness that rests on one person's
+instinct is not yet a property of the pipeline.
+
+**Ambiguity is a legitimate parse result.** Commons returned `DateTimeOriginal = 04/17/24` for an
+image the harvester had recorded as undated. Slashed dates only resolve when one field exceeds 12;
+given `04/05/24`, picking a convention is wrong about half the time and looks exactly as confident
+as being right. The parser now returns day precision when the order is determined and falls back to
+the *year* when it is not. A coarser true answer beats a precise coin-flip.

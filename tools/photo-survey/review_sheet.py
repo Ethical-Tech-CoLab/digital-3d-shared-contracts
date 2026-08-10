@@ -196,6 +196,30 @@ def card_html(obs: dict, categories: list[dict], hints: dict[str, list[str]]) ->
     )
 
 
+def subject_rank(obs: dict, terms: list[str]) -> tuple[int, str]:
+    """Order key putting photographs whose title names the subject first.
+
+    A geosearch is the only harvest route that reliably returns anything, and it returns everything
+    within the radius regardless of what it shows. That is right for a district, whose subject *is*
+    the area, and wrong for a single structure: the first Williamsburg Bridge campaign came back 250
+    photographs of which 187 were basketball courts, a sugar refinery and the Manhattan skyline —
+    75 per cent noise standing between a reviewer and the 63 images that could answer anything.
+
+    This **sorts and never hides**. Nothing is filtered, dropped or pre-ticked, because a heuristic
+    good enough to order a list is nowhere near good enough to decide what is evidence — that is the
+    whole reason a person is in this loop. A reviewer still sees every record and can still overrule
+    the ordering by simply scrolling. If ``subject_terms`` is absent the corpus keeps its harvested
+    order, so existing campaigns are unaffected.
+    """
+    if not terms:
+        return (0, "")
+    title = (obs.get("notes") or "").lower()
+    for i, term in enumerate(terms):
+        if term.lower() in title:
+            return (i, title)
+    return (len(terms), title)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -210,6 +234,15 @@ def main() -> int:
     survey = json.loads((root / cfg["outputs"]["raw"]).read_text(encoding="utf-8"))
     obs = survey["observations"]
     categories = cfg["categories"]
+
+    terms = cfg.get("subject_terms") or []
+    if terms:
+        obs = sorted(obs, key=lambda o: subject_rank(o, terms))
+        named = sum(1 for o in obs if subject_rank(o, terms)[0] < len(terms))
+        # The ratio is itself a finding. A campaign whose corpus is mostly off-subject is telling
+        # you the crowd photographs something other than what the model needs, which is the same
+        # signal build_corpus.py reports when a category ends the review with no ticks.
+        print(f"{named} of {len(obs)} titles name the subject; those are ordered first")
 
     hints_path = (root / cfg["outputs"]["raw"]).with_suffix(".harvest-report.json")
     hints = {}
