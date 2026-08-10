@@ -91,9 +91,13 @@ PAGE = """<!doctype html>
     <select id="filter" onchange="applyFilter()">
       <option value="all">show all</option>
       <option value="undecided">undecided only</option>
+      <option value="uncategorised">kept, needs a category</option>
       <option value="used">kept only</option>
       <option value="skipped">skipped only</option>
+      <option value="screened">auto-screened out</option>
     </select>
+    <button id="allOut" type="button">Skip all shown</button>
+    <button id="clear" type="button">Clear all shown</button>
     <span class="count" id="count"></span>
   </div>
 </header>
@@ -137,12 +141,27 @@ function applyFilter() {{
   const mode = document.getElementById('filter').value;
   document.querySelectorAll('.card').forEach(c => {{
     const v = state(c.dataset.id);
+    // 'uncategorised' catches the one state that is easy to leave behind: a photograph kept but
+    // given no category, which reads as evidence yet informs nothing.
     const show = mode === 'all'
       || (mode === 'undecided' && !v)
+      || (mode === 'uncategorised' && v === 'use:')
       || (mode === 'used' && v.startsWith('use:'))
-      || (mode === 'skipped' && v === 'skip');
+      || (mode === 'skipped' && v === 'skip')
+      || (mode === 'screened' && c.dataset.screened === '1');
     c.classList.toggle('hidden', !show);
   }});
+}}
+// Bulk actions apply only to what is on screen, so they are always scoped by the filter above.
+// There is deliberately no "keep all shown": skipping in bulk discards, which is recoverable,
+// while keeping in bulk would manufacture evidence, which is not.
+function shownIds() {{
+  return [...document.querySelectorAll('.card:not(.hidden)')].map(c => c.dataset.id);
+}}
+function bulk(fn) {{
+  shownIds().forEach(fn);
+  document.querySelectorAll('.card').forEach(paint);
+  tally(); applyFilter();
 }}
 function save() {{
   const clean = {{}};
@@ -153,6 +172,8 @@ function save() {{
   a.download = 'review-decisions.json';
   a.click();
 }}
+document.getElementById('allOut').onclick = () => bulk(id => {{ DECISIONS[id] = 'skip'; }});
+document.getElementById('clear').onclick = () => bulk(id => {{ delete DECISIONS[id]; }});
 document.querySelectorAll('.card').forEach(paint);
 tally();
 </script>
@@ -177,6 +198,14 @@ def card_html(obs: dict, categories: list[dict], hints: dict[str, list[str]]) ->
         flags.append('<span class="flag">sought: %s</span>'
                      % html.escape(", ".join(hint)[:44]))
 
+    # A record the harvester's automatic screen wanted to discard. It is still shown, and still
+    # reviewable, because the screen is exactly what a person is here to overrule -- on the first
+    # corpus, sky coverage ran 0.16-0.79 for interiors and 0.51-1.00 for exteriors, so any threshold
+    # that caught the interiors also threw away good street views. Badged, filterable, never hidden.
+    screened = "screened out" in (obs.get("notes") or "")
+    if screened:
+        flags.append('<span class="flag warn">auto-screened out</span>')
+
     choices = "".join(
         '<label data-cat="%s" title="%s" onclick="toggle(this,\'%s\')">%s</label>'
         % (html.escape(c["id"]), html.escape(c.get("help", "")), html.escape(c["id"]),
@@ -187,12 +216,12 @@ def card_html(obs: dict, categories: list[dict], hints: dict[str, list[str]]) ->
 
     link = html.escape(obs.get("image_url") or "")
     return (
-        '<div class="card" data-id="%s">'
+        '<div class="card" data-id="%s" data-screened="%s">'
         '<a class="zoom" href="%s" target="_blank" rel="noreferrer">'
         '<img class="thumb" src="%s" loading="lazy" alt=""></a>'
         '<div class="meta"><b>%s</b>%s</div>'
         '<div class="choices">%s</div></div>'
-        % (oid, link, thumb, title, "".join(flags), choices)
+        % (oid, "1" if screened else "0", link, thumb, title, "".join(flags), choices)
     )
 
 
