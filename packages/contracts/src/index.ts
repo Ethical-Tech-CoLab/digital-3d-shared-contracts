@@ -680,7 +680,10 @@ export type PhotoCategory =
   | 'landmark'
   | 'bridge'
   | 'historic'
-  | 'context';
+  | 'context'
+  | 'waterside'
+  | 'lawn'
+  | 'railing';
 
 export type PhotoAspect =
   | 'facade_material'
@@ -843,6 +846,9 @@ export const PHOTO_CATEGORY_GRANTS: Record<PhotoCategory, PhotoCategoryGrant> = 
   bridge: { aspects: ['other'], materials: [], attaches: false, foreign: true },
   historic: { aspects: ['condition', 'other'], materials: [], attaches: false, historic: true },
   context: { aspects: ['other'], materials: [], attaches: false },
+  waterside: { aspects: ['paving_material', 'condition'], materials: ['riprap'], attaches: false },
+  lawn: { aspects: ['tree_size', 'condition'], materials: ['grass', 'foliage'], attaches: false },
+  railing: { aspects: ['street_furniture'], materials: [], attaches: false },
 };
 
 export const DEFAULT_PHOTO_CATEGORY: PhotoCategory = 'facade';
