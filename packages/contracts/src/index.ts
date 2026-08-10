@@ -627,6 +627,7 @@ export type PropKind =
   | 'kiosk'
   | 'bin'
   | 'fence'
+  | 'wall'
   | 'parked_vehicle'
   | 'person'
   | 'custom';
