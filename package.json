@@ -12,7 +12,7 @@
     "validate": "node tools/validate.mjs",
     "validate:fixtures": "node tools/validate.mjs examples",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "npm run validate:fixtures && npm run typecheck && node --test \"tools/**/*.test.mts\""
+    "test": "npm run validate:fixtures && npm run typecheck && node --test \"tools/**/*.test.mts\" && python tools/photo-survey/harvest.py --self-test"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

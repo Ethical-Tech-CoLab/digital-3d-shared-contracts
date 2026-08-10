@@ -279,6 +279,21 @@ def normalise_capture_date(value) -> tuple[str, str] | None:
     if m:
         return (m.group(0), "month")
 
+    # Slashed dates, which EXIF and Commons both emit: "04/17/24", "17/04/2024".
+    # Order is only resolvable when one field exceeds 12. When both could be a month the date is
+    # genuinely ambiguous, so it degrades to the year rather than picking a convention -- being
+    # wrong by eleven months while claiming day precision is worse than being right to the year.
+    m = re.search(r"\b(\d{1,2})/(\d{1,2})/(\d{2}|\d{4})\b", text)
+    if m:
+        a, b, y = int(m.group(1)), int(m.group(2)), m.group(3)
+        year = int(y) if len(y) == 4 else (2000 + int(y) if int(y) <= 30 else 1900 + int(y))
+        if 1 <= a <= 12 and 12 < b <= 31:
+            return ("%04d-%02d-%02d" % (year, a, b), "day")
+        if 1 <= b <= 12 and 12 < a <= 31:
+            return ("%04d-%02d-%02d" % (year, b, a), "day")
+        if a <= 12 and b <= 12:
+            return ("%04d" % year, "year")
+
     m = re.search(r"\b(1[6-9]\d{2}|20\d{2})s\b", text)
     if m:
         return (m.group(0), "decade")
@@ -337,14 +352,55 @@ def to_observation(raw: dict, subject: str, informs: list[str], campaign: dict) 
     return rec
 
 
+def _self_test() -> int:
+    """Assert the date parser on the inputs that actually broke it.
+
+    Every case below is a real string from a real collection, not an invented one. The first two
+    shipped a corrupt corpus; the third was recorded as undated for weeks and only surfaced when a
+    downstream guard demanded a date.
+    """
+    cases = [
+        ("Taken on 2 June 2016", ("2016-06-02", "day")),
+        ("Taken on\u00a09 September 2011", ("2011-09-09", "day")),
+        ("04/17/24", ("2024-04-17", "day")),
+        ("17/04/2024", ("2024-04-17", "day")),
+        # Order undeterminable: both fields could be a month, so it must degrade to the year
+        # rather than pick a convention and be wrong half the time at full confidence.
+        ("04/05/24", ("2024", "year")),
+        ("2016-06-02T14:23:11Z", ("2016-06-02T14:23:11", "exact")),
+        ("June 2016", ("2016-06", "month")),
+        ("circa 1898", ("1898", "year")),
+        ("1890s", ("1890s", "decade")),
+        ("unknown date", None),
+        ("", None),
+        (None, None),
+    ]
+    bad = 0
+    for raw, want in cases:
+        got = normalise_capture_date(raw)
+        flag = "ok  " if got == want else "FAIL"
+        if got != want:
+            bad += 1
+        print("  %s %-24r -> %-24r want %r" % (flag, raw, got, want))
+    print("%d case(s) failed" % bad if bad else "all %d date cases pass" % len(cases))
+    return 1 if bad else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--config", required=True, help="campaign config JSON")
+    ap.add_argument("--config", required=False, help="campaign config JSON")
+    ap.add_argument("--self-test", action="store_true",
+                    help="assert the capture-date parser on known-tricky real inputs, then exit")
     ap.add_argument("--root", default=".", help="module root that output paths are relative to")
     ap.add_argument("--limit", type=int, default=0, help="cap results per shot while iterating")
     ap.add_argument("--out", default=None, help="override the config's output path")
     args = ap.parse_args()
+
+    if args.self_test:
+        return _self_test()
+    if not args.config:
+        ap.error("--config is required unless --self-test is given")
 
     cfg_path = Path(args.config).resolve()
     cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
