@@ -21,5 +21,16 @@
       "@d3d/viewer-kernel": ["packages/viewer-kernel/src/index.ts"]
     }
   },
-  "include": ["packages/*/src/**/*.ts"]
+  "include": ["packages/*/src/**/*.ts"],
+  "exclude": [
+    "packages/bridge-viewer-ui/src/index.ts"
+  ],
+  "$comment": [
+    "bridge-viewer-ui is React, and this project is deliberately framework-agnostic: no jsx setting,",
+    "no React types. Its src/model.ts IS checked here, because that is the data contract every module",
+    "depends on and it contains no JSX. Only src/index.ts is excluded, because it re-exports .tsx.",
+    "The components themselves are typechecked by every consuming module -- manhattan-bridge-3d runs",
+    "tsc --noEmit over its vendored copy and that gates its deploy -- so they are covered where the",
+    "React toolchain actually lives."
+  ]
 }
