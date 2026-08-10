@@ -62,7 +62,7 @@
       "position_source": "geocoded_address",
       "position_accuracy_m": 40,
       "bearing_source": "unknown",
-      "captured_at": "2011-01-01T00:00:00Z",
+      "captured_at": "2011",
       "captured_precision": "year",
       "observes": [
         { "asset_id": "urn:d3d:example-module:thing", "aspect": ["roofline"], "visibility": "partial" }
@@ -78,6 +78,36 @@
         "status": "accepted",
         "grants_confidence": "C",
         "notes": "Dated to the year only, scaffolding over the subject, no bearing. Tagged historic as well as facade, which is contagious: the roofline may still be read from it, but no colour may be measured, because the wall may have been repainted since. Useful as historic reference; must not be presented as current condition."
+      }
+    },
+    {
+      "observation_id": "obs_0003",
+      "image_url": "https://example.invalid/archive/tower-saddle.jpg",
+      "position_source": "unknown",
+      "captured_at": "1890s",
+      "captured_precision": "decade",
+      "observes": [
+        {
+          "asset_id": "urn:d3d:example-module:tower-saddle",
+          "aspect": ["connection_detail", "fitting_existence", "masonry_coursing"],
+          "visibility": "clear"
+        }
+      ],
+      "quality": {
+        "pixels_long_edge": 2200,
+        "sharpness": "acceptable",
+        "obstruction": "none"
+      },
+      "license": "CC0-1.0",
+      "attribution_text": "Archive plate, public domain",
+      "source_collection": "Library of Congress",
+      "usage": "redistribute",
+      "category": "saddle",
+      "categories": ["saddle", "masonry", "historic"],
+      "review": {
+        "status": "accepted",
+        "grants_confidence": "C",
+        "notes": "Exercises the three constructs a harvested structural corpus needs and a phone survey does not. It has NO position, which is honest rather than lossy: an archival plate has no camera fix, and the schema permits the omission only because position_source says 'unknown' out loud. It is dated to a decade and says so in four characters, instead of padding to a timestamp nobody knows. And it is tagged with structural categories, so it informs the saddle's arrangement and the coursing around it without pretending to be a facade. Note what it still cannot do: no aspect in the vocabulary is dimensional, so this plate settles how the ironwork sits and that it exists, and contributes no measurement whatever."
       }
     }
   ]

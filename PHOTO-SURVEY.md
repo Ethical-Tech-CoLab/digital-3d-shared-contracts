@@ -93,6 +93,31 @@ about today's storefront. Three defences, all in the schema:
 drawings and authoritative datasets. A photograph is excellent evidence of *appearance* and poor
 evidence of *dimension*.
 
+### Trap 3: a strict field forces someone to invent the value
+
+Two constraints were relaxed once a bridge ran a campaign against archival collections, because as
+written they could not express an honest record and so invited a dishonest one.
+
+- **`position` is no longer required.** An archival plate has no camera fix. Requiring one meant
+  either dropping the photograph or inventing a coordinate. It may now be absent — but only when
+  `position_source` is `"unknown"`, so the absence is a stated fact. That single condition is what
+  keeps a genuine archive image distinguishable from a survey that quietly lost its GPS.
+- **`captured_at` may be truncated.** `"1898"` and `"1890s"` are legal. It previously demanded a
+  full RFC3339 timestamp, so a photograph known only to its year had to be padded to
+  `1898-01-01T00:00:00Z` — eleven digits of precision nobody had, indistinguishable from a real
+  midnight. `captured_precision` is now cross-checked against the string: a record claiming `day`
+  must show a full date, and one claiming `exact` must show a time.
+
+This is worth generalising. A field that cannot express "I don't know" does not prevent ignorance,
+it launders it — the value still gets written, it just stops being marked as a guess. The first
+harvester to run this contract truncated free text to ten characters and stamped all 272 records
+`day`, producing `captured_at: "Taken on 2"` with a confident precision badge on it. Both the
+relaxation and the cross-check exist because of that corpus.
+
+Negative proofs for both live in `tools/photo-survey-schema.test.mts`: a relaxation is exactly the
+kind of change that looks safe in review, so each one is paired with a test that feeds the schema
+the defect it was shaped around and asserts it is still refused.
+
 ---
 
 ## 4. Pipeline

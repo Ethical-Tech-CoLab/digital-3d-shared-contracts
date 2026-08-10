@@ -31,7 +31,7 @@ skip, that judgement wins outright.**
 
 ---
 
-## The two rules that keep this honest
+## The three rules that keep this honest
 
 **1. An unknown licence is a rejection, not a default.** However good the photograph looks, if the
 licence cannot be read it is refused. Fetching it anyway would only create a temptation later. Each
@@ -55,9 +55,22 @@ may grant is closed, and `dimension` is not in it:
 material  arrangement  existence  condition  appearance
 ```
 
-`build_corpus.py` writes the grant per record in `review.grants_confidence`, so a downstream reader
-cannot mistake one for the other. Dimensional claims stay with measured drawings and primary
-documents.
+`build_corpus.py` maps each grant into the contract's own `observes[].aspect` vocabulary —
+`material` becomes `surface_material`, `arrangement` becomes `member_arrangement`, and so on —
+so a downstream reader sees what the photograph is evidence *for* in the same terms as every
+other source. Nothing on the right-hand side of that map is dimensional, and there is no route by
+which it could become so. Separately, `review.grants_confidence` records how strongly it counts,
+and is capped at `B`: a person looked at a real image of the real structure, which is observation,
+not measurement. Dimensional claims stay with measured drawings and primary documents.
+
+**3. What is written before review is as important as what is written after.** A harvested record
+carries neither `observes` nor `categories`. Both are judgements — "shows this asset well enough to
+inform it", "a reviewer says the frame contains this" — and the harvester has made neither. All it
+knows is which query returned the image, which is a fact about a search rather than about a
+photograph. That hint rides in the `*.harvest-report.json` sidecar and is shown on the review card
+as a prompt, never as a pre-ticked answer; it is promoted to a real `observes` entry only when a
+person accepts the record. The contract already said an observation with no subjects is context
+rather than evidence, which is precisely the right thing to say about a corpus nobody has read.
 
 ---
 
@@ -111,8 +124,8 @@ sibling records exactly that trap: an invented coordinate was nearly used to "ve
 
 **Openverse now returns HTTP 401 without a key.** A source that refuses looks exactly like a source
 with no matching photographs, and the difference matters — one is a gap in the record, the other a
-gap in our access to it. Failures are therefore recorded in `provenance.source_failures` and printed
-at the end of the run, not swallowed.
+gap in our access to it. Failures are therefore recorded in the `*.harvest-report.json` sidecar and
+printed at the end of the run, not swallowed.
 
 **Not every Commons category exists.** Several plausible names returned nothing; the geosearch did
 the real work. A shot returning `+0` is reported per shot so a dead category is visible rather than
@@ -120,3 +133,28 @@ assumed empty.
 
 **Resolve outputs against the module root, not the config's directory.** The first run wrote
 `sources/photos/sources/photos/photos.raw.json`. Hence `--root`.
+
+**Nothing validated the document these scripts existed to produce.** The first corpus declared
+`contract_version: 1.0.0` and did not conform to the contract in six separate ways — a campaign
+block with invented field names, `observes` holding bare strings, a `provenance` full of fields the
+shared definition forbids, and `grants_confidence` set to a list of grant kinds where a single
+confidence grade belongs. Every one of those had been reviewed and none had been *checked*, because
+declaring a version is free and the tooling never asked. Run the repo validator over the output as
+part of the pipeline:
+
+```powershell
+node tools/validate.mjs <module>/viewer/public/photo-survey.json
+```
+
+**Only the unreviewed path ever ran.** Half of the above lived in `build_corpus.py`'s acceptance
+branch, which does nothing until a human has ticked something — so it stayed unexecuted, and its
+bugs stayed invisible, through an entire campaign. It was worth feeding the tool a synthetic
+decisions file purely to make that branch run once: it immediately produced an empty `categories`
+array from a bare `use` verdict, which the schema rejects. If a code path only executes after a
+human does something, it has not been tested by shipping.
+
+**A truncated date is a lie with a badge on.** `str(date)[:10]` plus a hard-coded
+`captured_precision = "day"` turned Wikimedia's "Taken on 2 June 2016" into `"Taken on 2"`, dated to
+the day, 272 times over. Precision is now *derived* from what actually parsed — the corpus came back
+90 exact, 142 day, 37 year, 3 genuinely unknown — and unparseable input yields no date at all
+rather than a confident wrong one.

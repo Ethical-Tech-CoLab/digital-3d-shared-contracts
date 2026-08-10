@@ -56,7 +56,50 @@ test('only categories that own a subject may bind a photograph to one building',
   const attaching = (Object.keys(PHOTO_CATEGORY_GRANTS) as PhotoCategory[]).filter(
     (c) => PHOTO_CATEGORY_GRANTS[c].attaches,
   );
-  assert.deepEqual(sorted(attaching), ['facade', 'landmark']);
+  assert.deepEqual(sorted(attaching), [
+    'arcade', 'cable', 'cornice', 'deck', 'facade', 'landmark',
+    'masonry', 'promenade', 'saddle', 'stair', 'truss',
+  ]);
+});
+
+test('the diffuse categories stay unattachable, however many structural tags are added', () => {
+  // The complement matters more than the list above: these name a condition of the scene
+  // rather than a thing, so binding one to a single asset would be a category error.
+  const loose = (Object.keys(PHOTO_CATEGORY_GRANTS) as PhotoCategory[]).filter(
+    (c) => !PHOTO_CATEGORY_GRANTS[c].attaches,
+  );
+  assert.deepEqual(sorted(loose), [
+    'bridge', 'context', 'furniture', 'greenery', 'historic',
+    'lawn', 'lighting', 'railing', 'surface', 'waterside',
+  ]);
+});
+
+test('no structural category grants a measurement', () => {
+  // The load-bearing rule of the whole survey: a photograph without scale control in the
+  // frame cannot measure, however sharp it is. Sizes come from drawings. If a future edit
+  // adds a dimensional aspect to a structural grant, this fails rather than quietly
+  // licensing a number read off a picture.
+  const structural: PhotoCategory[] = [
+    'masonry', 'arcade', 'cornice', 'saddle', 'truss',
+    'cable', 'deck', 'promenade', 'stair', 'lighting',
+  ];
+  const measures = /size|length|width|height|span|thickness|diameter|dimension/i;
+  for (const tag of structural) {
+    for (const aspect of PHOTO_CATEGORY_GRANTS[tag].aspects) {
+      assert.ok(!measures.test(aspect), `${tag} grants the dimensional aspect ${aspect}`);
+    }
+  }
+});
+
+test('every structural category is reachable through the union rule', () => {
+  // Guards the pairing a reviewer actually produces: a saddle is photographed against
+  // masonry, and the frame is usually archival. The historic tag must suppress the
+  // materials without suppressing the arrangement the photograph was kept for.
+  const grant = photoCategoryGrants(['saddle', 'masonry', 'historic']);
+  assert.deepEqual(grant.materials, [], 'archival ironwork may have been repainted since');
+  assert.ok(grant.aspects.includes('connection_detail'));
+  assert.ok(grant.aspects.includes('masonry_coursing'));
+  assert.equal(grant.attaches, true, 'a saddle is a specific thing, so it still binds');
 });
 
 test('every category grants at least one aspect, so no tag is silently inert', () => {

@@ -220,6 +220,76 @@ def openverse_search(query: str, user_agent: str, limit: int) -> list[dict]:
 # ------------------------------------------------------------------- records
 
 
+def _now() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def prune_nulls(value):
+    """Drop keys whose value is None, recursively.
+
+    Every contract in this repo types its optional fields (`"type": "string"`) rather than
+    permitting null, so an absent thumbnail must be an absent *key*. Emitting `null` claims the
+    field exists and is empty, which is a different assertion from not knowing.
+    """
+    if isinstance(value, dict):
+        return {k: prune_nulls(v) for k, v in value.items() if v is not None}
+    if isinstance(value, list):
+        return [prune_nulls(v) for v in value]
+    return value
+
+
+def normalise_capture_date(value) -> tuple[str, str] | None:
+    """Return ``(captured_at, captured_precision)``, or None when nothing survives.
+
+    Precision is *derived from what actually parsed*, never declared. The predecessor of this
+    function truncated whatever upstream returned to ten characters and labelled every record
+    ``day``; Wikimedia hands back free text such as "Taken on 2 June 2016", so a corpus came out
+    the far side reading ``captured_at: "Taken on 2"`` with a confident day-precision stamp on it.
+    A wrong date that announces itself is recoverable, a wrong date wearing a precision badge is
+    not, so anything unrecognised returns None and the record simply carries no date.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+
+    m = re.search(r"(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?", text)
+    if m:
+        stamp = "%s-%s-%sT%s:%s" % m.group(1, 2, 3, 4, 5)
+        return (stamp + (":" + m.group(6) if m.group(6) else ""), "exact")
+
+    m = re.search(r"(\d{4})-(\d{2})-(\d{2})", text)
+    if m:
+        return (m.group(0), "day")
+
+    # "2 June 2016" and "June 2016" are both common in archival captions.
+    months = ("january", "february", "march", "april", "may", "june",
+              "july", "august", "september", "october", "november", "december")
+    m = re.search(r"(?:(\d{1,2})\s+)?([A-Za-z]{3,9})\.?,?\s+(\d{4})", text)
+    if m:
+        name = m.group(2).lower()
+        hits = [i for i, mon in enumerate(months, start=1) if mon.startswith(name[:3])]
+        if len(hits) == 1:
+            if m.group(1):
+                return ("%s-%02d-%02d" % (m.group(3), hits[0], int(m.group(1))), "day")
+            return ("%s-%02d" % (m.group(3), hits[0]), "month")
+
+    m = re.search(r"(\d{4})-(\d{2})(?!\d)", text)
+    if m:
+        return (m.group(0), "month")
+
+    m = re.search(r"\b(1[6-9]\d{2}|20\d{2})s\b", text)
+    if m:
+        return (m.group(0), "decade")
+
+    m = re.search(r"\b(1[6-9]\d{2}|20\d{2})\b", text)
+    if m:
+        return (m.group(0), "year")
+
+    return None
+
+
 def to_observation(raw: dict, subject: str, informs: list[str], campaign: dict) -> dict | None:
     """Build a photo-survey observation, or None if the licence is not recognised.
 
@@ -245,7 +315,12 @@ def to_observation(raw: dict, subject: str, informs: list[str], campaign: dict) 
         "rights_holder": attribution,
         "usage": usage,
         "source_collection": raw.get("collection"),
-        "observes": informs,
+        # Neither `observes` nor `categories` is emitted here, and the omission is the point.
+        # `observes` means "shows this asset well enough to inform it" and `categories` means
+        # "a reviewer says the frame contains this" — both are judgements, and the harvester has
+        # made none. All it knows is which search turned the image up, which is a statement about
+        # a query rather than about a photograph. That hint travels in the harvest report sidecar
+        # and is only promoted to `observes` once a person accepts the record.
         "review": {
             "status": "auto_screened",
             "notes": "Harvested for '%s'. No person has looked at this yet." % subject,
@@ -256,9 +331,9 @@ def to_observation(raw: dict, subject: str, informs: list[str], campaign: dict) 
         rec["position"] = {"lon": raw["lon"], "lat": raw["lat"]}
     if raw.get("descriptionurl"):
         rec["notes"] = (rec["notes"] + " | " + raw["descriptionurl"]).strip(" |")
-    if raw.get("date"):
-        rec["captured_at"] = str(raw["date"])[:10]
-        rec["captured_precision"] = "day"
+    dated = normalise_capture_date(raw.get("date"))
+    if dated:
+        rec["captured_at"], rec["captured_precision"] = dated
     return rec
 
 
@@ -289,6 +364,15 @@ def main() -> int:
     seen: dict[str, dict] = {}
     rejected_licence = 0
     per_source: dict[str, int] = {}
+    # Which searches turned each image up. A hint about a query, not a claim about a photograph,
+    # so it stays out of the survey document and travels in the report sidecar for build_corpus.
+    hints: dict[str, list[str]] = {}
+
+    def remember(oid: str, assets: list[str]) -> None:
+        bucket = hints.setdefault(oid, [])
+        for a in assets:
+            if a not in bucket:
+                bucket.append(a)
 
     area = cfg.get("area")
     if area:
@@ -300,6 +384,7 @@ def main() -> int:
                 rejected_licence += 1
                 continue
             seen.setdefault(rec["observation_id"], rec)
+            remember(rec["observation_id"], cfg.get("area_informs", []))
             per_source[raw["collection"]] = per_source.get(raw["collection"], 0) + 1
         print("   %d kept so far" % len(seen))
 
@@ -318,10 +403,7 @@ def main() -> int:
                 if rec["observation_id"] not in seen:
                     seen[rec["observation_id"]] = rec
                     per_source[raw["collection"]] = per_source.get(raw["collection"], 0) + 1
-                else:
-                    for a in informs:
-                        if a not in seen[rec["observation_id"]]["observes"]:
-                            seen[rec["observation_id"]]["observes"].append(a)
+                remember(rec["observation_id"], informs)
 
         if shot.get("openverse"):
             for raw in openverse_search(shot["openverse"], user_agent, per_shot):
@@ -332,37 +414,56 @@ def main() -> int:
                 if rec["observation_id"] not in seen:
                     seen[rec["observation_id"]] = rec
                     per_source[raw["collection"]] = per_source.get(raw["collection"], 0) + 1
+                remember(rec["observation_id"], informs)
 
         print("  %-28s +%d  (total %d)" % (subject, len(seen) - found_before, len(seen)))
 
-    survey = {
+    diagnostics = {
+        "tool": TOOL_VERSION,
+        "generated_at": _now(),
+        "module_id": module,
+        "kept": len(seen),
+        "rejected_for_licence": rejected_licence,
+        "collections": per_source,
+        "asset_hints": {k: hints[k] for k in sorted(hints) if hints[k]},
+        "source_failures": sorted({"%s HTTP %s" % (h, c) for h, c in HTTP_FAILURES}),
+        "note": (
+            "Only images already published under a reuse-permitting licence. Anything without "
+            "an explicit licence is rejected rather than assumed. Share-alike images are marked "
+            "derive_appearance: facts may be read from them, the images are not vendored. "
+            "Every record is auto_screened until a person reviews it."
+        ),
+    }
+
+    survey = prune_nulls({
         "contract_version": "1.0.0",
         "module_id": module,
         "frame_id": cfg.get("frame_id"),
         "campaign": {
-            "name": cfg.get("campaign_name", module),
-            "purpose": cfg.get("purpose", ""),
-            "harvested_by": TOOL_VERSION,
-            "shots": [s["subject"] for s in cfg["shots"]],
+            "campaign_id": cfg.get("campaign_id", module + "-photo-survey"),
+            "title": cfg.get("campaign_name", module),
+            "guidance_url": cfg.get("guidance_url"),
         },
         "observations": sorted(seen.values(), key=lambda r: r["observation_id"]),
         "provenance": {
-            "tool": TOOL_VERSION,
-            "rejected_for_licence": rejected_licence,
-            "collections": per_source,
-            "source_failures": sorted({"%s HTTP %s" % (h, c) for h, c in HTTP_FAILURES}),
-            "note": (
-                "Only images already published under a reuse-permitting licence. Anything without "
-                "an explicit licence is rejected rather than assumed. Share-alike images are marked "
-                "derive_appearance: facts may be read from them, the images are not vendored. "
-                "Every record is auto_screened until a person reviews it."
-            ),
+            "module_id": module,
+            "generated_by": TOOL_VERSION,
+            "generated_at": _now(),
         },
-    }
+    })
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8", newline="\n") as fh:
         json.dump(survey, fh, indent=1, sort_keys=False)
+        fh.write("\n")
+
+    # The contract's `provenance` is deliberately narrow, so the harvest's own diagnostics live
+    # beside the document rather than inside it. They are not decoration: `source_failures`
+    # records which collections refused us, and a corpus that quietly shrank because an API
+    # returned 429 looks exactly like a corpus with nothing to find.
+    report_path = out_path.with_suffix(".harvest-report.json")
+    with report_path.open("w", encoding="utf-8", newline="\n") as fh:
+        json.dump(diagnostics, fh, indent=1, sort_keys=False)
         fh.write("\n")
 
     print()

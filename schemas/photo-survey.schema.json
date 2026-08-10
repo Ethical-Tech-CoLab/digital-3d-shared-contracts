@@ -71,8 +71,8 @@
 
         "captured_at": {
           "type": "string",
-          "format": "date-time",
-          "description": "When the photograph was taken, NOT when it was uploaded. Required for anything claiming to describe current conditions."
+          "pattern": "^[0-9]{4}(-[0-9]{2}(-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2})?([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?)?)?)?s?$",
+          "description": "When the photograph was taken, NOT when it was uploaded. Required for anything claiming to describe current conditions. Truncated forms are legal and preferred over invention: an image known only to its year is '1898', a decade is '1890s'. A full timestamp must never be manufactured to satisfy a format, because the padding would read as knowledge nobody has - state captured_precision and let the string be as short as the evidence."
         },
         "captured_precision": {
           "type": "string",
@@ -106,6 +106,12 @@
                     "street_furniture",
                     "tree_size",
                     "tree_species",
+                    "masonry_coursing",
+                    "member_arrangement",
+                    "connection_detail",
+                    "surface_material",
+                    "fitting_existence",
+                    "profile_shape",
                     "condition",
                     "other"
                   ],
@@ -188,7 +194,7 @@
         },
         "category": {
           "type": "string",
-          "enum": ["facade", "surface", "greenery", "furniture", "landmark", "bridge", "historic", "context", "waterside", "lawn", "railing"],
+          "enum": ["facade", "surface", "greenery", "furniture", "landmark", "bridge", "historic", "context", "waterside", "lawn", "railing", "masonry", "arcade", "cornice", "saddle", "truss", "cable", "deck", "promenade", "stair", "lighting"],
           "description": "Primary subject, for consumers that want a single label. The first entry of `categories`."
         },
         "categories": {
@@ -196,7 +202,7 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "enum": ["facade", "surface", "greenery", "furniture", "landmark", "bridge", "historic", "context", "waterside", "lawn", "railing"]
+            "enum": ["facade", "surface", "greenery", "furniture", "landmark", "bridge", "historic", "context", "waterside", "lawn", "railing", "masonry", "arcade", "cornice", "saddle", "truss", "cable", "deck", "promenade", "stair", "lighting"]
           },
           "description": "Everything a reviewer said the photograph shows. Coarser than `observes[].aspect` and answering a different question: aspect says what may be derived, category says what the picture is OF. A list because one frame usually contains several — a street view is a facade, a pavement and a street tree at once — and tagging it once per subject is what lets each inform only its own thing. Permissions are the union, which makes the awkward combinations fall out for free: `bridge` contributes nothing, so `[bridge, facade]` yields exactly the facade. `historic` is the exception, contributing aspects but never a measured colour, because an archival wall may have been repainted twice since."
         },
@@ -225,7 +231,40 @@
         },
         "notes": { "type": "string" }
       },
-      "required": ["observation_id", "position", "license", "usage", "review"],
+      "required": ["observation_id", "license", "usage", "review"],
+      "allOf": [
+        {
+          "description": "A camera position may be absent, but only when the record SAYS it is unknown. Absence must be declared, never accidental: a harvested archival photograph legitimately has no position, whereas a phone survey that silently dropped its GPS is a defect. Requiring position_source to be present and 'unknown' distinguishes the two.",
+          "if": { "not": { "required": ["position"] } },
+          "then": {
+            "properties": { "position_source": { "const": "unknown" } },
+            "required": ["position_source"]
+          }
+        },
+        {
+          "description": "Stated precision may not exceed what the timestamp actually carries. This is the failure mode worth encoding: a harvester that truncates free text to ten characters and labels every record 'day' produces a corpus that looks precisely dated and is not. A day-precise claim must show a full date; an exact claim must show a time.",
+          "if": {
+            "properties": { "captured_precision": { "enum": ["exact", "day"] } },
+            "required": ["captured_precision", "captured_at"]
+          },
+          "then": {
+            "properties": {
+              "captured_at": { "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "captured_precision": { "const": "exact" } },
+            "required": ["captured_precision", "captured_at"]
+          },
+          "then": {
+            "properties": {
+              "captured_at": { "pattern": "[T ][0-9]{2}:[0-9]{2}" }
+            }
+          }
+        }
+      ],
       "additionalProperties": false
     }
   }

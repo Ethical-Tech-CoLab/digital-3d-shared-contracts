@@ -683,7 +683,20 @@ export type PhotoCategory =
   | 'context'
   | 'waterside'
   | 'lawn'
-  | 'railing';
+  | 'railing'
+  // Structural vocabulary. A bridge, viaduct or shed has no facade and no storefront;
+  // without these every structural photograph collapses into `other` and the field
+  // stops discriminating, which is the whole reason it exists.
+  | 'masonry'
+  | 'arcade'
+  | 'cornice'
+  | 'saddle'
+  | 'truss'
+  | 'cable'
+  | 'deck'
+  | 'promenade'
+  | 'stair'
+  | 'lighting';
 
 export type PhotoAspect =
   | 'facade_material'
@@ -699,6 +712,12 @@ export type PhotoAspect =
   | 'street_furniture'
   | 'tree_size'
   | 'tree_species'
+  | 'masonry_coursing'
+  | 'member_arrangement'
+  | 'connection_detail'
+  | 'surface_material'
+  | 'fitting_existence'
+  | 'profile_shape'
   | 'condition'
   | 'other';
 
@@ -747,7 +766,12 @@ export interface PhotoObservation {
   image_url?: string;
   thumbnail_url?: string;
   sha256?: string;
-  position: Position;
+  /**
+   * Where the camera stood. Optional, because an archival or harvested photograph
+   * genuinely has none — but when it is absent `position_source` must be `'unknown'`,
+   * so a missing position is always a declared fact rather than a dropped field.
+   */
+  position?: Position;
   position_source?:
     | 'exif_gps'
     | 'device_gps'
@@ -849,6 +873,21 @@ export const PHOTO_CATEGORY_GRANTS: Record<PhotoCategory, PhotoCategoryGrant> = 
   waterside: { aspects: ['paving_material', 'condition'], materials: ['riprap'], attaches: false },
   lawn: { aspects: ['tree_size', 'condition'], materials: ['grass', 'foliage'], attaches: false },
   railing: { aspects: ['street_furniture'], materials: [], attaches: false },
+
+  // Structural subjects. Each grants only what a photograph of that thing can actually
+  // settle — arrangement, material, existence, condition, profile. None grants a size:
+  // there is deliberately no dimensional aspect in the vocabulary, because a frame
+  // without scale control in it cannot measure, however sharp it is.
+  masonry: { aspects: ['masonry_coursing', 'surface_material', 'condition'], materials: ['granite'], attaches: true },
+  arcade: { aspects: ['member_arrangement', 'masonry_coursing', 'profile_shape', 'condition'], materials: ['granite'], attaches: true },
+  cornice: { aspects: ['profile_shape', 'masonry_coursing', 'member_arrangement'], materials: ['granite'], attaches: true },
+  saddle: { aspects: ['connection_detail', 'fitting_existence', 'member_arrangement'], materials: ['steel'], attaches: true },
+  truss: { aspects: ['member_arrangement', 'connection_detail', 'condition'], materials: ['steel', 'paint'], attaches: true },
+  cable: { aspects: ['member_arrangement', 'connection_detail', 'profile_shape'], materials: ['steel', 'paint'], attaches: true },
+  deck: { aspects: ['surface_material', 'condition'], materials: ['asphalt', 'steel'], attaches: true },
+  promenade: { aspects: ['surface_material', 'member_arrangement', 'condition'], materials: ['timber', 'asphalt'], attaches: true },
+  stair: { aspects: ['member_arrangement', 'surface_material', 'fitting_existence', 'condition'], materials: ['steel', 'timber'], attaches: true },
+  lighting: { aspects: ['street_furniture', 'fitting_existence'], materials: [], attaches: false },
 };
 
 export const DEFAULT_PHOTO_CATEGORY: PhotoCategory = 'facade';

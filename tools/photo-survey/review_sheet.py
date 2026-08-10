@@ -159,7 +159,7 @@ tally();
 """
 
 
-def card_html(obs: dict, categories: list[dict]) -> str:
+def card_html(obs: dict, categories: list[dict], hints: dict[str, list[str]]) -> str:
     oid = html.escape(obs["observation_id"])
     thumb = html.escape(obs.get("thumbnail_url") or obs.get("image_url") or "")
     title = html.escape((obs.get("notes") or obs["observation_id"]).split(" | ")[0][:110])
@@ -170,9 +170,12 @@ def card_html(obs: dict, categories: list[dict]) -> str:
     flags.append('<span class="flag">%s</span>' % lic)
     if obs.get("position"):
         flags.append('<span class="flag good">geotagged</span>')
-    if obs.get("observes"):
-        flags.append('<span class="flag">%s</span>'
-                     % html.escape(", ".join(obs["observes"])[:44]))
+    # What the harvester was looking for when it found this. Shown as a prompt, never as a
+    # default tick: the reviewer is here precisely because the search may have been wrong.
+    hint = hints.get(obs["observation_id"]) or []
+    if hint:
+        flags.append('<span class="flag">sought: %s</span>'
+                     % html.escape(", ".join(hint)[:44]))
 
     choices = "".join(
         '<label data-cat="%s" title="%s" onclick="toggle(this,\'%s\')">%s</label>'
@@ -208,6 +211,11 @@ def main() -> int:
     obs = survey["observations"]
     categories = cfg["categories"]
 
+    hints_path = (root / cfg["outputs"]["raw"]).with_suffix(".harvest-report.json")
+    hints = {}
+    if hints_path.exists():
+        hints = json.loads(hints_path.read_text(encoding="utf-8")).get("asset_hints", {})
+
     decisions_path = root / cfg["outputs"]["decisions"]
     decisions = {}
     if decisions_path.exists():
@@ -221,7 +229,7 @@ def main() -> int:
     page = PAGE.format(
         title=html.escape(cfg.get("campaign_name", cfg["module_id"]) + " — photo review"),
         legend=legend,
-        cards="".join(card_html(o, categories) for o in obs),
+        cards="".join(card_html(o, categories, hints) for o in obs),
         decisions=json.dumps(decisions),
     )
 

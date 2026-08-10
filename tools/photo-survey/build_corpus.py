@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import time
 from pathlib import Path
 
 TOOL_VERSION = "photo-survey/build_corpus@1.0.0"
@@ -37,6 +38,26 @@ TOOL_VERSION = "photo-survey/build_corpus@1.0.0"
 # a photograph without scale control cannot carry one, and leaving the value out of the vocabulary
 # stops it being claimed by accident.
 GRANTS = ("material", "arrangement", "existence", "condition", "appearance")
+
+# What each grant becomes in the contract's own aspect vocabulary.
+#
+# The campaign speaks of grants because that is what a reviewer is deciding; the survey document
+# speaks of aspects because that is what a consumer reads. Keeping the two vocabularies mapped
+# rather than merged is deliberate: `appearance` lands on `other`, which is honest, because a
+# photograph that only shows what something looks like informs nothing in particular.
+# Nothing on the right-hand side is dimensional, and there is no route by which it could become so.
+GRANT_ASPECT = {
+    "material": "surface_material",
+    "arrangement": "member_arrangement",
+    "existence": "fitting_existence",
+    "condition": "condition",
+    "appearance": "other",
+}
+
+# A reviewed photograph grants B and never better. B is "observed": a person looked at a real
+# image of the real structure and reported what they saw. A is reserved for a measured drawing or
+# a primary document, and no quantity of photographs adds up to one.
+PHOTO_MAX_CONFIDENCE = "B"
 
 
 def die(msg: str) -> None:
@@ -75,12 +96,31 @@ def main() -> int:
     cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
     root = pathlib.Path(args.root).resolve()
     valid = {c["id"] for c in cfg["categories"]}
+    module_id = cfg["module_id"]
     grants_for = {c["id"]: c.get("grants", "appearance") for c in cfg["categories"]}
     for cid, g in grants_for.items():
         if g not in GRANTS:
             die("category %s declares grants=%r, which is not in %s" % (cid, g, GRANTS))
 
+    # A campaign may name its own categories, but only from the contract's vocabulary: a
+    # reviewer's tick ends up in `categories`, which is a closed enum. Read the enum from the
+    # schema rather than restating it, so this check cannot drift away from the thing it checks.
+    schema_path = Path(__file__).resolve().parents[2] / "schemas" / "photo-survey.schema.json"
+    if schema_path.exists():
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        allowed = set(schema["$defs"]["observation"]["properties"]["category"]["enum"])
+        stray = sorted(valid - allowed)
+        if stray:
+            die("campaign declares categories the photo-survey contract does not define: %s.\n"
+                "  Add them to the enum in %s (an additive change), or rename them to existing "
+                "members. A tick that cannot be expressed in the survey document is a tick that "
+                "gets silently dropped." % (", ".join(stray), schema_path))
+
     survey = json.loads((root / cfg["outputs"]["raw"]).read_text(encoding="utf-8"))
+    hints_path = (root / cfg["outputs"]["raw"]).with_suffix(".harvest-report.json")
+    hints: dict[str, list[str]] = {}
+    if hints_path.exists():
+        hints = json.loads(hints_path.read_text(encoding="utf-8")).get("asset_hints", {})
     decisions_path = root / cfg["outputs"]["decisions"]
     decisions = {}
     if decisions_path.exists():
@@ -107,37 +147,67 @@ def main() -> int:
         if verdict == "skip":
             skipped += 1
             continue
+        # A bare `use` means the reviewer kept the photograph without saying what for, which is
+        # the definition of context. Recording it as such keeps the array non-empty and, more
+        # usefully, stops an unexplained keep from being mistaken for evidence of something.
+        if not cats:
+            cats = ["context"]
         obs["categories"] = cats
+        obs["category"] = cats[0]
+        aspects = sorted({GRANT_ASPECT[grants_for.get(c, "appearance")] for c in cats}) or ["other"]
+        subjects = [
+            {"asset_id": "urn:d3d:%s:%s" % (module_id, a), "aspect": aspects}
+            for a in hints.get(oid, [])
+        ]
+        if subjects:
+            obs["observes"] = subjects
+        else:
+            obs.pop("observes", None)
         obs["review"] = {
             "status": "accepted",
             "reviewer": args.reviewer,
-            "notes": "Reviewed by a person. This judgement overrides any automatic screen.",
-            "grants_confidence": sorted({grants_for[c] for c in cats}) or ["appearance"],
+            "notes": (
+                "Reviewed by a person. This judgement overrides any automatic screen. "
+                "Kept for: %s." % ", ".join(cats or ["appearance"])
+            ),
+            "grants_confidence": PHOTO_MAX_CONFIDENCE,
         }
         for c in cats:
             by_category[c] = by_category.get(c, 0) + 1
         kept.append(obs)
 
     survey["observations"] = kept
-    survey["provenance"] = dict(survey.get("provenance", {}))
-    survey["provenance"].update({
-        "reviewed_by_tool": TOOL_VERSION,
+    survey["provenance"] = {
+        "module_id": module_id,
+        "generated_by": TOOL_VERSION,
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+
+    # The review tally is governance-relevant but has no home in the contract's `provenance`,
+    # which is deliberately narrow. It goes beside the document rather than being smuggled in.
+    report = {
+        "tool": TOOL_VERSION,
+        "module_id": module_id,
         "accepted": len(kept) - untouched,
         "auto_screened": untouched,
         "refused_by_review": skipped,
         "by_category": by_category,
         "grants_note": (
             "An accepted photograph supports material, arrangement, existence, condition and "
-            "appearance. It does NOT carry a dimension: without scale control in the frame a "
-            "photograph cannot measure. Dimensional claims stay with measured drawings and primary "
-            "documents."
+            "appearance, and grants confidence %s at best. It does NOT carry a dimension: without "
+            "scale control in the frame a photograph cannot measure. Dimensional claims stay with "
+            "measured drawings and primary documents." % PHOTO_MAX_CONFIDENCE
         ),
-    })
+    }
 
     out = root / cfg["outputs"]["survey"]
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8", newline="\n") as fh:
         json.dump(survey, fh, indent=1, sort_keys=False)
+        fh.write("\n")
+
+    with out.with_suffix(".review-report.json").open("w", encoding="utf-8", newline="\n") as fh:
+        json.dump(report, fh, indent=1, sort_keys=False)
         fh.write("\n")
 
     print("accepted      %4d" % (len(kept) - untouched))
