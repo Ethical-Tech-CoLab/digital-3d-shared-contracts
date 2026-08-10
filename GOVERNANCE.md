@@ -62,11 +62,34 @@ relative to it, so moving it silently invalidates every asset in the stack.
 
 ### Checklist for any contract PR
 
-- [ ] `node tools/validate.mjs` passes, including every bundled fixture.
-- [ ] `npm run typecheck` passes; the TypeScript mirror in `packages/contracts` was updated too.
+- [ ] `npm test` passes: fixtures validate, types check, and the unit tests in `tools/` are green.
+- [ ] The TypeScript mirror in `packages/contracts` was updated too.
 - [ ] A fixture in `examples/` exercises the new construct.
 - [ ] Every affected module's build still validates against the new schema.
 - [ ] The change is additive, or the major version was bumped and owners signed off.
+- [ ] If a rule is implemented twice, in two languages, something checks that the two agree.
+
+### When a rule lives in two languages
+
+Some rules cannot live only in a schema, because they are behaviour rather than shape — what a
+photograph's review categories permit you to derive, for instance. Those end up implemented once in
+this repo's TypeScript and once in a module's Python build, and the two will drift.
+
+The answer is not to pick a winner. It is to make the drift loud. `tools/check-photo-categories.mts`
+takes a dump of the module's implementation and compares it against this repo's across every tag
+combination:
+
+```bash
+# in the module repo, dump the reference
+python -c "...; json.dump(out, open('catref.json','w'))"
+# here, compare
+node --experimental-strip-types tools/check-photo-categories.mts catref.json
+```
+
+It found a real divergence the first time it was run: `historic` is contagious in the module — one
+archival tag suppresses every colour in the set — whereas the mirror had unioned it. The mirror was
+wrong and the module was right, which is the usual direction, because the module is the one meeting
+real data.
 
 ---
 

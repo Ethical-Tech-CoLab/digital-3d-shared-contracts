@@ -113,6 +113,37 @@ and not yet blurred.
 **Human review** does the part a machine should not: confirming which asset is actually in frame,
 whether scaffolding is hiding the subject, and what confidence the observation may grant.
 
+### What a reviewer records
+
+A verdict — keep or skip — and, if kept, **every subject the frame contains**. Not the most
+important one: all of them. A DUMBO street view is a brick facade, a granite kerb and a street tree
+in a single exposure, and making the reviewer choose discards two of the three.
+
+| Category | Means | May inform |
+|---|---|---|
+| `facade` | A building's exterior wall | Facade colour and material; attaches to a specific building |
+| `surface` | Ground: paving, cobbles, kerbs | Paving and kerb colour |
+| `greenery` | Trees, planting, grass | Foliage colour, canopy size |
+| `furniture` | Benches, railings, lamps, bollards | Prop appearance |
+| `landmark` | A named feature — the carousel, an arch | That landmark's appearance |
+| `bridge` | A subject another module owns | **Nothing** |
+| `historic` | A past state | Geometry and layout, never colour |
+| `context` | Useful to a human, not to the renderer | Nothing |
+
+Permissions are the **union** of the tags, which is what lets the awkward pairs resolve themselves
+instead of needing a rule each. `bridge` contributes nothing, so `[bridge, facade]` yields exactly
+the facade's permissions. `historic` contributes aspects but no measured colour, because an archival
+wall may have been repainted twice since.
+
+Two of these categories exist because a real corpus taught us they had to. `bridge` was added after
+a bridge's paint was averaged onto a warehouse; the neighbouring module owns that subject and this
+one must not guess at it. `historic` was added after an archival photograph of a demolished building
+was about to be presented as a claim about today.
+
+The reviewer's rejections are worth more than the acceptances and should be **stored permanently**,
+keyed by source URL, so a later re-ingest cannot quietly resurrect them. Everything else in a photo
+pipeline can be re-fetched; human judgement cannot.
+
 **Derive** turns accepted observations into the module's appearance data. For DUMBO that means
 `facades.json` entries move from `source_basis: ["official_dataset"]` inferred, to
 `["official_dataset", "photo"]` observed, with `confidence` raised to `B` and `DOQ-007` closed for

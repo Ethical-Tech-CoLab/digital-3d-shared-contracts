@@ -189,7 +189,16 @@
         "category": {
           "type": "string",
           "enum": ["facade", "surface", "greenery", "furniture", "landmark", "bridge", "historic", "context"],
-          "description": "What a reviewer said the photograph is primarily evidence FOR. Coarser than `observes[].aspect` and answering a different question: aspect says what may be derived, category says what the picture is OF. It exists because 'use' and 'skip' proved too blunt on a real corpus — a photograph of a neighbouring module's bridge, an archival view of a demolished building, and a usable facade are all 'use', and treating them alike put a bridge's colour on a warehouse. `bridge` marks a subject another module owns, so nothing may be derived from it here; `historic` marks a past state that must never be presented as current."
+          "description": "Primary subject, for consumers that want a single label. The first entry of `categories`."
+        },
+        "categories": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["facade", "surface", "greenery", "furniture", "landmark", "bridge", "historic", "context"]
+          },
+          "description": "Everything a reviewer said the photograph shows. Coarser than `observes[].aspect` and answering a different question: aspect says what may be derived, category says what the picture is OF. A list because one frame usually contains several — a street view is a facade, a pavement and a street tree at once — and tagging it once per subject is what lets each inform only its own thing. Permissions are the union, which makes the awkward combinations fall out for free: `bridge` contributes nothing, so `[bridge, facade]` yields exactly the facade. `historic` is the exception, contributing aspects but never a measured colour, because an archival wall may have been repainted twice since."
         },
 
         "review": {

@@ -36,7 +36,8 @@
         "sharpness": "sharp",
         "lighting": "overcast",
         "obstruction": "none",
-        "rectified": false
+        "rectified": false,
+        "sky_fraction": 0.62
       },
       "license": "CC-BY-4.0",
       "attribution_text": "Photo: volunteer handle, CC BY 4.0",
@@ -44,6 +45,8 @@
       "contains_people": false,
       "privacy_reviewed": true,
       "contributor": { "handle": "fixture-volunteer", "role": "volunteer" },
+      "category": "facade",
+      "categories": ["facade", "surface"],
       "review": {
         "status": "accepted",
         "reviewer": "fixture-reviewer",
@@ -69,10 +72,12 @@
       "attribution_text": "Photo: archive collection, CC BY-SA 4.0",
       "source_collection": "Wikimedia Commons",
       "usage": "reference_only",
+      "category": "historic",
+      "categories": ["historic", "facade"],
       "review": {
         "status": "accepted",
         "grants_confidence": "C",
-        "notes": "Dated to the year only, scaffolding over the subject, no bearing. Useful as historic reference; must not be presented as current condition."
+        "notes": "Dated to the year only, scaffolding over the subject, no bearing. Tagged historic as well as facade, which is contagious: the roofline may still be read from it, but no colour may be measured, because the wall may have been repainted since. Useful as historic reference; must not be presented as current condition."
       }
     }
   ]

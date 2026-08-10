@@ -10,8 +10,9 @@
   ],
   "scripts": {
     "validate": "node tools/validate.mjs",
+    "validate:fixtures": "node tools/validate.mjs examples",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "npm run validate && npm run typecheck && node --test tools/"
+    "test": "npm run validate:fixtures && npm run typecheck && node --test \"tools/**/*.test.mts\""
   },
   "devDependencies": {
     "ajv": "^8.17.1",

@@ -11,7 +11,7 @@
  * produced, not where it is consumed.
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve, basename } from 'node:path';
 import process from 'node:process';
@@ -126,6 +126,18 @@ function main() {
       .map((f) => join(EXAMPLE_DIR, f));
     console.log(`\nvalidating ${targets.length} bundled fixture(s)`);
   } else {
+    // Expand directories, so a caller can point at a folder without relying on shell
+    // globbing — npm scripts do not expand globs on Windows.
+    targets = targets.flatMap((target) => {
+      try {
+        if (!statSync(target).isDirectory()) return [target];
+      } catch {
+        return [target];
+      }
+      return readdirSync(target)
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => join(target, f));
+    });
     console.log(`\nvalidating ${targets.length} document(s)`);
   }
 

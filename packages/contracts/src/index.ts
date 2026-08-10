@@ -668,7 +668,217 @@ export interface ScenePropSet {
   provenance?: Provenance;
 }
 
+// ------------------------------------------------------------- photo survey
+
+export type PhotoCategory =
+  | 'facade'
+  | 'surface'
+  | 'greenery'
+  | 'furniture'
+  | 'landmark'
+  | 'bridge'
+  | 'historic'
+  | 'context';
+
+export type PhotoAspect =
+  | 'facade_material'
+  | 'facade_colour'
+  | 'window_pattern'
+  | 'storefront'
+  | 'awning'
+  | 'signage'
+  | 'roofline'
+  | 'entrance'
+  | 'paving_material'
+  | 'kerb'
+  | 'street_furniture'
+  | 'tree_size'
+  | 'tree_species'
+  | 'condition'
+  | 'other';
+
+export type PhotoUsage = 'reference_only' | 'derive_appearance' | 'redistribute';
+
+export type PhotoReviewStatus =
+  | 'submitted'
+  | 'auto_screened'
+  | 'human_reviewed'
+  | 'accepted'
+  | 'rejected'
+  | 'superseded';
+
+export interface PhotoSubject {
+  asset_id: AssetUrn;
+  aspect: PhotoAspect[];
+  visibility?: 'clear' | 'partial' | 'obstructed';
+  distance_m?: number;
+}
+
+export interface PhotoQuality {
+  pixels_long_edge?: number;
+  sharpness?: 'sharp' | 'acceptable' | 'soft';
+  lighting?: 'even' | 'harsh_shadow' | 'backlit' | 'night' | 'overcast';
+  obstruction?: 'none' | 'vehicles' | 'foliage' | 'scaffolding' | 'people' | 'heavy';
+  rectified?: boolean;
+  /**
+   * A measurement, not a test. Across a real corpus interiors scored 0.16-0.79 and
+   * exteriors 0.51-1.00, so no threshold separates them. Publish the number and let
+   * a human decide.
+   */
+  sky_fraction?: number;
+}
+
+export interface PhotoReview {
+  status: PhotoReviewStatus;
+  reviewer?: string;
+  reviewed_at?: string;
+  /** Photographs alone never grant A. */
+  grants_confidence?: Confidence;
+  notes?: string;
+}
+
+export interface PhotoObservation {
+  observation_id: string;
+  image_url?: string;
+  thumbnail_url?: string;
+  sha256?: string;
+  position: Position;
+  position_source?:
+    | 'exif_gps'
+    | 'device_gps'
+    | 'geocoded_address'
+    | 'manual_placement'
+    | 'photogrammetric_solve'
+    | 'unknown';
+  position_accuracy_m?: number;
+  bearing_deg?: number;
+  bearing_source?: 'exif_compass' | 'device_compass' | 'inferred_from_subject' | 'manual' | 'unknown';
+  pitch_deg?: number;
+  hfov_deg?: number;
+  captured_at?: string;
+  captured_precision?: 'exact' | 'day' | 'month' | 'year' | 'decade' | 'unknown';
+  season?: 'winter' | 'spring' | 'summer' | 'autumn';
+  observes?: PhotoSubject[];
+  quality?: PhotoQuality;
+  license: string;
+  license_url?: string;
+  attribution_text?: string;
+  rights_holder?: string;
+  usage: PhotoUsage;
+  contains_people?: boolean;
+  privacy_reviewed?: boolean;
+  contributor?: {
+    handle?: string;
+    role?: 'volunteer' | 'staff' | 'archive' | 'third_party';
+    contact?: string;
+  };
+  source_collection?: string;
+  /** The primary subject: the first entry of `categories`. */
+  category?: PhotoCategory;
+  /** Every subject the frame contains. Permissions are the union — see photoCategoryGrants. */
+  categories?: PhotoCategory[];
+  review: PhotoReview;
+  supersedes?: string;
+  notes?: string;
+}
+
+export interface PhotoSurvey {
+  contract_version: string;
+  module_id: ModuleId;
+  frame_id: string;
+  campaign?: {
+    campaign_id: string;
+    title: string;
+    opened?: string;
+    closed?: string;
+    contact?: string;
+    guidance_url?: string;
+  };
+  observations: PhotoObservation[];
+  provenance?: Provenance;
+}
+
 // ------------------------------------------------------------------- helpers
+
+/**
+ * What each review category permits a photograph to inform.
+ *
+ * Two axes, because they answer different questions. `aspects` is what the observation
+ * may be recorded as evidence FOR; `materials` is the narrower set of palettes whose
+ * colour it may actually be measured into; `attaches` is whether it may be bound to one
+ * specific building.
+ *
+ * `bridge` yields no materials on purpose: a neighbouring module owns that subject, and a
+ * bridge's paint averaged onto a warehouse is exactly the mistake this prevents. `historic`
+ * is the deliberate near-miss — it carries aspects but no materials, because an archival
+ * wall may have been repainted twice since the shutter closed.
+ *
+ * Mirrors REVIEW_CATEGORIES in the district's build_photo_corpus.py.
+ */
+export interface PhotoCategoryGrant {
+  aspects: PhotoAspect[];
+  /** Palette keys whose colour may be measured from this photograph. */
+  materials: string[];
+  /** Whether the photograph may be bound to one specific building. */
+  attaches: boolean;
+  /** True when another module owns the subject. */
+  foreign?: boolean;
+  /** True when the photograph describes a past state. */
+  historic?: boolean;
+}
+
+export const PHOTO_CATEGORY_GRANTS: Record<PhotoCategory, PhotoCategoryGrant> = {
+  facade: {
+    // A building shot from the street necessarily contains the street, so paving is included.
+    aspects: ['facade_material', 'facade_colour', 'window_pattern', 'storefront', 'awning', 'signage', 'roofline', 'entrance'],
+    materials: ['brick', 'paving'],
+    attaches: true,
+  },
+  surface: { aspects: ['paving_material', 'kerb'], materials: ['paving'], attaches: false },
+  greenery: { aspects: ['tree_size', 'tree_species'], materials: ['foliage', 'paving'], attaches: false },
+  furniture: { aspects: ['street_furniture'], materials: ['paving'], attaches: false },
+  landmark: { aspects: ['condition', 'other'], materials: ['brick'], attaches: true },
+  bridge: { aspects: ['other'], materials: [], attaches: false, foreign: true },
+  historic: { aspects: ['condition', 'other'], materials: [], attaches: false, historic: true },
+  context: { aspects: ['other'], materials: [], attaches: false },
+};
+
+export const DEFAULT_PHOTO_CATEGORY: PhotoCategory = 'facade';
+
+/**
+ * The permissions of a tag set: the union of its members', with one exception.
+ *
+ * Union is what lets the awkward pairs resolve themselves rather than needing a rule each.
+ * `[bridge, facade]` yields exactly the facade's permissions, because bridge contributes
+ * nothing to add.
+ *
+ * `historic` is the exception, and it is contagious rather than unioned: one historic tag
+ * suppresses every material in the set. The aspects survive, so the photograph can still
+ * say what a building looked like, but no colour may be measured from it — a wall in an
+ * archival frame may have been repainted twice since.
+ */
+export function photoCategoryGrants(categories: PhotoCategory[] | undefined): PhotoCategoryGrant {
+  const tags = categories?.length ? categories : [DEFAULT_PHOTO_CATEGORY];
+  const aspects = new Set<PhotoAspect>();
+  const materials = new Set<string>();
+  let attaches = false;
+  const historic = tags.some((t) => PHOTO_CATEGORY_GRANTS[t]?.historic === true);
+  for (const tag of tags) {
+    const grant = PHOTO_CATEGORY_GRANTS[tag];
+    if (!grant) continue;
+    for (const aspect of grant.aspects) aspects.add(aspect);
+    if (!historic) for (const material of grant.materials) materials.add(material);
+    attaches = attaches || grant.attaches;
+  }
+  return {
+    aspects: [...aspects],
+    materials: [...materials],
+    attaches,
+    // Foreign only when there is nothing else in the frame we are allowed to look at.
+    foreign: tags.every((t) => PHOTO_CATEGORY_GRANTS[t]?.foreign === true),
+    historic,
+  };
+}
 
 /** Confidence colours, shared so both viewers grade identically. */
 export const CONFIDENCE_COLORS: Record<Confidence, string> = {
