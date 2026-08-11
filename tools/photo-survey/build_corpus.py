@@ -177,11 +177,29 @@ def main() -> int:
         kept.append(obs)
 
     survey["observations"] = kept
+    # Campaign-level fields come from the config, not from whatever the raw file happened to carry.
+    # The raw corpus is harvested once and reviewed over days; a campaign edited in between would
+    # otherwise be silently ignored. That is not hypothetical: the Williamsburg campaign gained its
+    # `frame_id` after harvesting, and the corpus was written without one — passing every step of
+    # this pipeline and then failing the contract it declares conformance to.
+    if cfg.get("frame_id"):
+        survey["frame_id"] = cfg["frame_id"]
     survey["provenance"] = {
         "module_id": module_id,
         "generated_by": TOOL_VERSION,
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
+
+    # Refuse to write a document that cannot satisfy the contract it declares. The README already
+    # records that "nothing validated the document these scripts existed to produce", and six
+    # conformance bugs shipped behind that gap; a missing `frame_id` was the seventh. This is not a
+    # substitute for `node tools/validate.mjs`, which checks the whole schema — it is the cheap
+    # subset that needs no toolchain, so the common failure is caught where it is caused.
+    missing = [f for f in ("contract_version", "module_id", "frame_id", "observations")
+               if not survey.get(f)]
+    if missing:
+        die("refusing to write a survey missing %s. Add %s to the campaign config."
+            % (", ".join(missing), " and ".join(missing)))
 
     # The review tally is governance-relevant but has no home in the contract's `provenance`,
     # which is deliberately narrow. It goes beside the document rather than being smuggled in.

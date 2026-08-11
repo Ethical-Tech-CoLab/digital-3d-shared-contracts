@@ -115,6 +115,20 @@ legend says *"OQ-007: the model draws slender bents, but SRC-004 describes brick
 is answering a specific question. A reviewer ticking `arcade` because it looks like an arcade is
 just sorting photographs.
 
+**Category ids come from a closed vocabulary in the schema, not from the config alone.** A campaign
+chooses which categories it uses and what each one grants; it may not invent an id. `build_corpus.py`
+fails loudly rather than dropping a tick it cannot express — *"a tick that cannot be expressed in the
+survey document is a tick that gets silently dropped"* — so a new subject means an additive PR to
+`schemas/photo-survey.schema.json`. That friction is deliberate: it is what stops three bridges
+growing `cable_profile`, `cableProfile` and `cable-profile` for the same thing, and it keeps survey
+documents comparable across modules.
+
+**Reuse an existing term before adding one.** The Williamsburg campaign proposed seven new ids and
+only five survived that test: `period` was already `historic`, whose definition ("contributing
+aspects but never a measured colour, because an archival wall may have been repainted twice since")
+is exactly right for archival views, and `truss_elevation` was just `truss` seen from the side —
+"elevation" described the framing, not a different subject.
+
 **The `area` coordinate is for search only.** It must never become a control. This repository's
 sibling records exactly that trap: an invented coordinate was nearly used to "verify" a placement.
 
