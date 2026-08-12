@@ -194,7 +194,7 @@
         },
         "category": {
           "type": "string",
-          "enum": ["facade", "surface", "greenery", "furniture", "landmark", "bridge", "historic", "context", "waterside", "lawn", "railing", "masonry", "arcade", "cornice", "saddle", "truss", "cable", "deck", "promenade", "stair", "lighting"],
+          "enum": ["facade", "surface", "greenery", "furniture", "landmark", "bridge", "historic", "context", "waterside", "lawn", "railing", "masonry", "arcade", "cornice", "saddle", "truss", "cable", "deck", "promenade", "stair", "lighting", "approach", "arch", "portal", "rail", "scale_reference"],
           "description": "Primary subject, for consumers that want a single label. The first entry of `categories`."
         },
         "categories": {
@@ -202,7 +202,7 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "enum": ["facade", "surface", "greenery", "furniture", "landmark", "bridge", "historic", "context", "waterside", "lawn", "railing", "masonry", "arcade", "cornice", "saddle", "truss", "cable", "deck", "promenade", "stair", "lighting"]
+            "enum": ["facade", "surface", "greenery", "furniture", "landmark", "bridge", "historic", "context", "waterside", "lawn", "railing", "masonry", "arcade", "cornice", "saddle", "truss", "cable", "deck", "promenade", "stair", "lighting", "approach", "arch", "portal", "rail", "scale_reference"]
           },
           "description": "Everything a reviewer said the photograph shows. Coarser than `observes[].aspect` and answering a different question: aspect says what may be derived, category says what the picture is OF. A list because one frame usually contains several — a street view is a facade, a pavement and a street tree at once — and tagging it once per subject is what lets each inform only its own thing. Permissions are the union, which makes the awkward combinations fall out for free: `bridge` contributes nothing, so `[bridge, facade]` yields exactly the facade. `historic` is the exception, contributing aspects but never a measured colour, because an archival wall may have been repainted twice since."
         },
