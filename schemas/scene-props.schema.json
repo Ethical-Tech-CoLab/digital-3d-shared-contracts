@@ -44,6 +44,7 @@
             "fence",
             "wall",
             "awning",
+            "rooftop_structure",
             "parked_vehicle",
             "person",
             "custom"
@@ -101,7 +102,7 @@
     },
     "instance": {
       "type": "object",
-      "description": "One placement. Deliberately terse: `p` is the prototype, `xy` the scene position, `r` an optional yaw in degrees, `s` an optional uniform scale.",
+      "description": "One placement. Deliberately terse: `p` is the prototype, `xy` the scene position, `r` an optional yaw in degrees, `s` an optional uniform scale, `s3` an optional per-axis scale.",
       "properties": {
         "p": { "type": "string" },
         "xy": {
@@ -116,6 +117,13 @@
         },
         "r": { "type": "number" },
         "s": { "type": "number", "exclusiveMinimum": 0 },
+        "s3": {
+          "type": "array",
+          "description": "Per-axis scale on the prototype's own size_m, as [x, y, z]. Present because a uniform scale cannot describe the things a survey actually measures: a roof bulkhead is 9 m by 3 m by 4 m, and forcing it into one number either loses its plan or loses its height. Where both are given, `s3` wins. A viewer that ignores it falls back to `s`, and draws the prototype's authored proportions.",
+          "items": { "type": "number", "exclusiveMinimum": 0 },
+          "minItems": 3,
+          "maxItems": 3
+        },
         "tile": {
           "type": "string",
           "description": "Owning tile ID, so props can stream with the tile rather than all at once."

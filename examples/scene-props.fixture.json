@@ -8,11 +8,20 @@
       "kind": "tree",
       "label": "Ginkgo",
       "format": "procedural",
-      "size_m": [8.0, 8.0, 10.0],
+      "size_m": [
+        8.0,
+        8.0,
+        10.0
+      ],
       "billboard": false,
       "casts_shadow": false,
-      "source_basis": ["official_dataset", "procedural"],
-      "source_refs": ["EXAMPLE-001"],
+      "source_basis": [
+        "official_dataset",
+        "procedural"
+      ],
+      "source_refs": [
+        "EXAMPLE-001"
+      ],
       "confidence": "C",
       "seasonal_foliage": {
         "spring": "#7fa04d",
@@ -28,8 +37,15 @@
       "kind": "tree",
       "label": "Pine",
       "format": "procedural",
-      "size_m": [8.0, 8.0, 11.0],
-      "source_basis": ["official_dataset", "procedural"],
+      "size_m": [
+        8.0,
+        8.0,
+        11.0
+      ],
+      "source_basis": [
+        "official_dataset",
+        "procedural"
+      ],
       "confidence": "C",
       "seasonal_foliage": {
         "spring": "#3f5f38",
@@ -45,9 +61,18 @@
       "kind": "bench",
       "label": "Bench",
       "format": "procedural",
-      "size_m": [1.8, 0.6, 0.9],
-      "source_basis": ["official_dataset", "procedural"],
-      "source_refs": ["EXAMPLE-002"],
+      "size_m": [
+        1.8,
+        0.6,
+        0.9
+      ],
+      "source_basis": [
+        "official_dataset",
+        "procedural"
+      ],
+      "source_refs": [
+        "EXAMPLE-002"
+      ],
       "confidence": "C",
       "extensions": {
         "example-module": {
@@ -56,13 +81,85 @@
         }
       },
       "notes": "A prop with no seasonal appearance, which is the common case: the fields are optional and most prototypes omit them."
+    },
+    {
+      "prototype_id": "prop_rooftop_bulkhead",
+      "kind": "rooftop_structure",
+      "label": "Roof bulkhead",
+      "format": "procedural",
+      "size_m": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "billboard": false,
+      "casts_shadow": true,
+      "source_basis": [
+        "official_dataset"
+      ],
+      "source_refs": [
+        "EXAMPLE-002"
+      ],
+      "confidence": "B",
+      "notes": "Exercises s3 and the rooftop_structure kind together, which is the case they exist for: a structure standing on a roof is measured as a plan extent and a height, and its base is the roof rather than the ground, so it needs both a per-axis scale and an explicit z."
     }
   ],
   "instances": [
-    { "p": "tree_ginkgo", "xy": [12.5, -30.25], "r": 143, "s": 0.62, "tile": "t_4_3" },
-    { "p": "tree_ginkgo", "xy": [18.0, -30.1], "r": 21, "s": 1.44, "tile": "t_4_3" },
-    { "p": "tree_pinus", "xy": [24.0, -28.6], "r": 300, "s": 0.9, "tile": "t_4_3" },
-    { "p": "prop_bench", "xy": [15.2, -26.0], "z": 2.4, "r": 90, "tile": "t_4_3" }
+    {
+      "p": "tree_ginkgo",
+      "xy": [
+        12.5,
+        -30.25
+      ],
+      "r": 143,
+      "s": 0.62,
+      "tile": "t_4_3"
+    },
+    {
+      "p": "tree_ginkgo",
+      "xy": [
+        18.0,
+        -30.1
+      ],
+      "r": 21,
+      "s": 1.44,
+      "tile": "t_4_3"
+    },
+    {
+      "p": "tree_pinus",
+      "xy": [
+        24.0,
+        -28.6
+      ],
+      "r": 300,
+      "s": 0.9,
+      "tile": "t_4_3"
+    },
+    {
+      "p": "prop_bench",
+      "xy": [
+        15.2,
+        -26.0
+      ],
+      "z": 2.4,
+      "r": 90,
+      "tile": "t_4_3"
+    },
+    {
+      "p": "prop_rooftop_bulkhead",
+      "xy": [
+        16.4,
+        -27.8
+      ],
+      "z": 24.6,
+      "r": -29.0,
+      "s3": [
+        9.2,
+        3.4,
+        4.1
+      ],
+      "tile": "t_4_3"
+    }
   ],
   "provenance": {
     "module_id": "example-module",

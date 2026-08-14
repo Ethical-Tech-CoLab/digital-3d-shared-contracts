@@ -629,6 +629,12 @@ export type PropKind =
   | 'fence'
   | 'wall'
   | 'awning'
+  /**
+   * Something standing on a roof: a stair bulkhead, a lift overrun, a water tank. Separate from
+   * `custom` because a roofline read at middle distance is mostly these, and a viewer that knows
+   * the kind can draw a plausible one without a payload.
+   */
+  | 'rooftop_structure'
   | 'parked_vehicle'
   | 'person'
   | 'custom';
@@ -677,6 +683,14 @@ export interface PropInstance {
   r?: number;
   /** uniform scale */
   s?: number;
+  /**
+   * Per-axis scale on the prototype's own `size_m`, as [x, y, z].
+   *
+   * Present because a uniform scale cannot describe the things a survey actually measures: a roof
+   * bulkhead is 9 m by 3 m by 4 m, and forcing that into one number either loses its plan or loses
+   * its height. Where both are given, `s3` wins; a viewer that ignores it falls back to `s`.
+   */
+  s3?: Vec3;
   tile?: string;
 }
 
